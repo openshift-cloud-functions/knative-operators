@@ -4,7 +4,6 @@ metadata:
   labels:
     app: build-controller
   name: build-controller
-  namespace: knative-build
 spec:
   ports:
   - name: metrics
@@ -20,7 +19,6 @@ metadata:
   labels:
     role: build-webhook
   name: build-webhook
-  namespace: knative-build
 spec:
   ports:
   - port: 443
@@ -62,5 +60,4 @@ data:
 kind: ConfigMap
 metadata:
   name: config-logging
-  namespace: knative-build
 ---
