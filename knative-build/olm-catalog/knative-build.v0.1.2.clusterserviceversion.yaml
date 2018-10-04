@@ -85,6 +85,9 @@ spec:
       - name: build-controller
         spec:
           replicas: 1
+          selector:
+            matchLabels:
+              app: build-controller
           template:
             metadata:
               labels:
@@ -103,10 +106,17 @@ spec:
                 - gcr.io/knative-releases/github.com/knative/build/cmd/git-init@sha256:414cae3a0896b09c276d17301c53f88abbed8a5e412a4f117cc535bf37012f1f
                 image: gcr.io/knative-releases/github.com/knative/build/cmd/controller@sha256:040b6d58dc0f770065ce1bc050ea4528ef095025b61ecbcdecf2f41fee05e27d
                 name: build-controller
+              initContainers:
+              - name: olm-hack
+                image: lachlanevenson/k8s-kubectl
+                args: ['apply', '-f', 'https://raw.githubusercontent.com/openshift-cloud-functions/knative-operators/1cd8b8057d/knative-build/olm-hack-0.1.2.yaml']
               serviceAccountName: build-controller
       - name: build-webhook
         spec:
           replicas: 1
+          selector:
+            matchLabels:
+              app: build-webhook
           template:
             metadata:
               labels:
@@ -142,3 +152,8 @@ spec:
         kind: BuildTemplate
         name: buildtemplates.build.knative.dev
         version: v1alpha1
+  version: 0.1.2
+  displayName: KnativeBuild
+  labels:
+    olm-owner-enterprise-app: build-controller
+    olm-status-descriptors: knative-build.v0.1.2
