@@ -398,6 +398,7 @@ data:
                     volumes:
                     - configMap:
                         name: config-logging
+                        optional: true
                       name: config-logging
       
             - name: controller
