@@ -1,0 +1,214 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: knative-operators
+  namespace: openshift-operator-lifecycle-manager
+
+data:
+  customResourceDefinitions: |-
+    - apiVersion: apiextensions.k8s.io/v1beta1
+      kind: CustomResourceDefinition
+      metadata:
+        name: builds.build.knative.dev
+      spec:
+        group: build.knative.dev
+        names:
+          kind: Build
+          plural: builds
+        scope: Namespaced
+        version: v1alpha1
+    - apiVersion: apiextensions.k8s.io/v1beta1
+      kind: CustomResourceDefinition
+      metadata:
+        name: buildtemplates.build.knative.dev
+      spec:
+        group: build.knative.dev
+        names:
+          kind: BuildTemplate
+          plural: buildtemplates
+        scope: Namespaced
+        version: v1alpha1
+
+  clusterServiceVersions: |-
+    - apiVersion: operators.coreos.com/v1alpha1
+      kind: ClusterServiceVersion
+      metadata:
+        name: knative-build.v0.1.2
+      spec:
+        displayName: KnativeBuild
+        description: |
+          Kubernetes-native Build resource
+        version: 0.1.2
+        maturity: alpha
+      
+        install:
+          strategy: deployment
+          spec:
+            permissions:
+            - serviceAccountName: build-controller
+              rules:
+              - apiGroups:
+                - clusterregistry.k8s.io
+                resources:
+                - clusters
+                verbs:
+                - "*"
+              - apiGroups:
+                - ""
+                resources:
+                - pods
+                - namespaces
+                - secrets
+                - events
+                - serviceaccounts
+                - configmaps
+                verbs:
+                - get
+                - list
+                - create
+                - update
+                - delete
+                - patch
+                - watch
+              - apiGroups:
+                - extensions
+                resources:
+                - deployments
+                verbs:
+                - get
+                - list
+                - create
+                - update
+                - delete
+                - patch
+                - watch
+              - apiGroups:
+                - admissionregistration.k8s.io
+                resources:
+                - mutatingwebhookconfigurations
+                verbs:
+                - get
+                - list
+                - create
+                - update
+                - delete
+                - patch
+                - watch
+              - apiGroups:
+                - apiextensions.k8s.io
+                resources:
+                - customresourcedefinitions
+                verbs:
+                - get
+                - list
+                - create
+                - update
+                - delete
+                - patch
+                - watch
+              - apiGroups:
+                - build.knative.dev
+                resources:
+                - builds
+                - buildtemplates
+                verbs:
+                - get
+                - list
+                - create
+                - update
+                - delete
+                - patch
+                - watch
+            deployments:
+            - name: build-controller
+              spec:
+                replicas: 1
+                selector:
+                  matchLabels:
+                    app: build-controller
+                template:
+                  metadata:
+                    labels:
+                      app: build-controller
+                  spec:
+                    containers:
+                    - args:
+                      - -builder
+                      - cluster
+                      - -logtostderr
+                      - -stderrthreshold
+                      - INFO
+                      - -creds-image
+                      - gcr.io/knative-releases/github.com/knative/build/cmd/creds-init@sha256:fb90fcb6b8b3ebb5a422dfc826473255f697cadae592d0bc5a723af139109f26
+                      - -git-image
+                      - gcr.io/knative-releases/github.com/knative/build/cmd/git-init@sha256:414cae3a0896b09c276d17301c53f88abbed8a5e412a4f117cc535bf37012f1f
+                      image: gcr.io/knative-releases/github.com/knative/build/cmd/controller@sha256:040b6d58dc0f770065ce1bc050ea4528ef095025b61ecbcdecf2f41fee05e27d
+                      name: build-controller
+                    initContainers:
+                    - name: olm-hack
+                      image: lachlanevenson/k8s-kubectl
+                      args: ['apply', '-f', 'https://raw.githubusercontent.com/openshift-cloud-functions/knative-operators/1cd8b8057d/knative-build/olm-hack-0.1.2.yaml']
+                    serviceAccountName: build-controller
+            - name: build-webhook
+              spec:
+                replicas: 1
+                selector:
+                  matchLabels:
+                    app: build-webhook
+                template:
+                  metadata:
+                    labels:
+                      app: build-webhook
+                      role: build-webhook
+                  spec:
+                    containers:
+                    - args:
+                      - -builder
+                      - cluster
+                      - -logtostderr
+                      - -stderrthreshold
+                      - INFO
+                      image: gcr.io/knative-releases/github.com/knative/build/cmd/webhook@sha256:dbe322def9edc878d880546385df0a0d7df75ab29b08d747ea1c9b8ad5af2552
+                      name: build-webhook
+                      volumeMounts:
+                      - mountPath: /etc/config-logging
+                        name: config-logging
+                    serviceAccountName: build-controller
+                    volumes:
+                    - configMap:
+                        name: config-logging
+                      name: config-logging
+        customresourcedefinitions:
+          owned:
+            - description: Create and run on-cluster processes to completion
+              displayName: Build
+              kind: Build
+              name: builds.build.knative.dev
+              version: v1alpha1
+            - description: Encapsulates a configurable, reusable build process
+              displayName: Build Template
+              kind: BuildTemplate
+              name: buildtemplates.build.knative.dev
+              version: v1alpha1
+        version: 0.1.2
+        displayName: KnativeBuild
+        labels:
+          olm-owner-enterprise-app: build-controller
+          olm-status-descriptors: knative-build.v0.1.2
+
+  packages: |-
+    - packageName: knative-build
+      channels:
+      - name: alpha
+        currentCSV: knative-build.v0.1.2
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: knative-operators
+  namespace: openshift-operator-lifecycle-manager
+spec:
+  configMap: knative-operators
+  displayName: Knative Operators
+  publisher: Red Hat
+  sourceType: internal
