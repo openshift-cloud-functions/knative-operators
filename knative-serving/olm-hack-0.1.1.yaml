@@ -1,0 +1,368 @@
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: knative-shared-gateway
+  namespace: knative-serving
+spec:
+  selector:
+    knative: ingressgateway
+  servers:
+  - hosts:
+    - '*'
+    port:
+      name: http
+      number: 80
+      protocol: HTTP
+  - hosts:
+    - '*'
+    port:
+      name: https
+      number: 443
+      protocol: HTTPS
+    tls:
+      mode: PASSTHROUGH
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    chart: ingressgateway-0.8.0
+    heritage: Tiller
+    knative: ingressgateway
+    release: RELEASE-NAME
+  name: knative-ingressgateway
+  namespace: istio-system
+spec:
+  ports:
+  - name: http
+    nodePort: 32380
+    port: 80
+  - name: https
+    nodePort: 32390
+    port: 443
+  - name: tcp
+    nodePort: 32400
+    port: 32400
+  selector:
+    knative: ingressgateway
+  type: LoadBalancer
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: knative-ingressgateway
+    chart: ingressgateway-0.8.0
+    heritage: Tiller
+    knative: ingressgateway
+    release: RELEASE-NAME
+  name: knative-ingressgateway
+  namespace: istio-system
+spec:
+  replicas: null
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+      labels:
+        knative: ingressgateway
+    spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - preference:
+              matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+            weight: 2
+          - preference:
+              matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                - ppc64le
+            weight: 2
+          - preference:
+              matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                - s390x
+            weight: 2
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: beta.kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+                - ppc64le
+                - s390x
+      containers:
+      - args:
+        - proxy
+        - router
+        - -v
+        - "2"
+        - --discoveryRefreshDelay
+        - 1s
+        - --drainDuration
+        - 45s
+        - --parentShutdownDuration
+        - 1m0s
+        - --connectTimeout
+        - 10s
+        - --serviceCluster
+        - knative-ingressgateway
+        - --zipkinAddress
+        - zipkin:9411
+        - --statsdUdpAddress
+        - istio-statsd-prom-bridge:9125
+        - --proxyAdminPort
+        - "15000"
+        - --controlPlaneAuthPolicy
+        - NONE
+        - --discoveryAddress
+        - istio-pilot:8080
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: INSTANCE_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        - name: ISTIO_META_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        image: docker.io/istio/proxyv2:0.8.0
+        imagePullPolicy: IfNotPresent
+        name: ingressgateway
+        ports:
+        - containerPort: 80
+        - containerPort: 443
+        - containerPort: 32400
+        resources: {}
+        volumeMounts:
+        - mountPath: /etc/certs
+          name: istio-certs
+          readOnly: true
+        - mountPath: /etc/istio/ingressgateway-certs
+          name: ingressgateway-certs
+          readOnly: true
+      serviceAccountName: istio-ingressgateway-service-account
+      volumes:
+      - name: istio-certs
+        secret:
+          optional: true
+          secretName: istio.default
+      - name: ingressgateway-certs
+        secret:
+          optional: true
+          secretName: istio-ingressgateway-certs
+---
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: knative-ingressgateway
+  namespace: istio-system
+spec:
+  maxReplicas: 10
+  metrics:
+  - resource:
+      name: cpu
+      targetAverageUtilization: 60
+    type: Resource
+  minReplicas: 1
+  scaleTargetRef:
+    apiVersion: apps/v1beta1
+    kind: Deployment
+    name: knative-ingressgateway
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: activator
+  name: activator-service
+  namespace: knative-serving
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app: activator
+  type: NodePort
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: controller
+  name: controller
+  namespace: knative-serving
+spec:
+  ports:
+  - name: metrics
+    port: 9090
+    protocol: TCP
+    targetPort: 9090
+  selector:
+    app: controller
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    role: webhook
+  name: webhook
+  namespace: knative-serving
+spec:
+  ports:
+  - port: 443
+    targetPort: 443
+  selector:
+    role: webhook
+---
+apiVersion: v1
+data:
+  concurrency-quantum-of-time: 100ms
+  enable-scale-to-zero: "true"
+  enable-vertical-pod-autoscaling: "false"
+  max-scale-up-rate: "10"
+  multi-concurrency-target: "1.0"
+  panic-window: 6s
+  scale-to-zero-threshold: 5m
+  single-concurrency-target: "0.9"
+  stable-window: 60s
+  vpa-multi-concurrency-target: "10.0"
+kind: ConfigMap
+metadata:
+  name: config-autoscaler
+  namespace: knative-serving
+---
+apiVersion: v1
+data:
+  autoscalerImage: gcr.io/knative-releases/github.com/knative/serving/cmd/autoscaler@sha256:2a9931ab1cbe6efeec43a47517163622002e0dc2ea5d6ffa0d0e546c2c94b841
+  queueSidecarImage: gcr.io/knative-releases/github.com/knative/serving/cmd/queue@sha256:65b4824c5f21134a1b8373cbc2be8d431744f06caf118a309f94b6514cd6f40c
+  registriesSkippingTagResolving: ko.local,dev.local
+kind: ConfigMap
+metadata:
+  name: config-controller
+  namespace: knative-serving
+---
+apiVersion: v1
+data:
+  example.com: ""
+kind: ConfigMap
+metadata:
+  name: config-domain
+  namespace: knative-serving
+---
+apiVersion: v1
+data:
+  loglevel.activator: info
+  loglevel.autoscaler: info
+  loglevel.controller: info
+  loglevel.queueproxy: info
+  loglevel.webhook: info
+  zap-logger-config: |
+    {
+      "level": "info",
+      "development": false,
+      "outputPaths": ["stdout"],
+      "errorOutputPaths": ["stderr"],
+      "encoding": "json",
+      "encoderConfig": {
+        "timeKey": "ts",
+        "levelKey": "level",
+        "nameKey": "logger",
+        "callerKey": "caller",
+        "messageKey": "msg",
+        "stacktraceKey": "stacktrace",
+        "lineEnding": "",
+        "levelEncoder": "",
+        "timeEncoder": "iso8601",
+        "durationEncoder": "",
+        "callerEncoder": ""
+      }
+    }
+kind: ConfigMap
+metadata:
+  name: config-logging
+  namespace: knative-serving
+---
+apiVersion: v1
+data:
+  istio.sidecar.includeOutboundIPRanges: '*'
+kind: ConfigMap
+metadata:
+  name: config-network
+  namespace: knative-serving
+---
+apiVersion: v1
+data:
+  logging.enable-var-log-collection: "false"
+  logging.fluentd-sidecar-image: k8s.gcr.io/fluentd-elasticsearch:v2.0.4
+  logging.fluentd-sidecar-output-config: |
+    # Parse json log before sending to Elastic Search
+    <filter **>
+      @type parser
+      key_name log
+      <parse>
+        @type multi_format
+        <pattern>
+          format json
+          time_key fluentd-time # fluentd-time is reserved for structured logs
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        <pattern>
+          format none
+          message_key log
+        </pattern>
+      </parse>
+    </filter>
+    # Send to Elastic Search
+    <match **>
+      @id elasticsearch
+      @type elasticsearch
+      @log_level info
+      include_tag_key true
+      # Elasticsearch service is in monitoring namespace.
+      host elasticsearch-logging.monitoring
+      port 9200
+      logstash_format true
+      <buffer>
+        @type file
+        path /var/log/fluentd-buffers/kubernetes.system.buffer
+        flush_mode interval
+        retry_type exponential_backoff
+        flush_thread_count 2
+        flush_interval 5s
+        retry_forever
+        retry_max_interval 30
+        chunk_limit_size 2M
+        queue_limit_length 8
+        overflow_action block
+      </buffer>
+    </match>
+  logging.revision-url-template: |
+    http://localhost:8001/api/v1/namespaces/monitoring/services/kibana-logging/proxy/app/kibana#/discover?_a=(query:(match:(kubernetes.labels.knative-dev%2FrevisionUID:(query:'${REVISION_UID}',type:phrase))))
+kind: ConfigMap
+metadata:
+  name: config-observability
+  namespace: knative-serving
