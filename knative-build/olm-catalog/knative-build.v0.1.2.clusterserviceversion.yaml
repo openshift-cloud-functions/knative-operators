@@ -3,7 +3,7 @@ kind: ClusterServiceVersion
 metadata:
   name: knative-build.v0.1.2
 spec:
-  displayName: KnativeBuild
+  displayName: Knative Build
   description: |
     Kubernetes-native Build resource
   version: 0.1.2
@@ -152,8 +152,3 @@ spec:
         kind: BuildTemplate
         name: buildtemplates.build.knative.dev
         version: v1alpha1
-  version: 0.1.2
-  displayName: KnativeBuild
-  labels:
-    olm-owner-enterprise-app: build-controller
-    olm-status-descriptors: knative-build.v0.1.2
