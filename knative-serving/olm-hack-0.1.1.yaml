@@ -3,7 +3,6 @@ apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
   name: knative-shared-gateway
-  namespace: knative-serving
 spec:
   selector:
     knative: ingressgateway
@@ -197,7 +196,6 @@ metadata:
   labels:
     app: activator
   name: activator-service
-  namespace: knative-serving
 spec:
   ports:
   - name: http
@@ -214,7 +212,6 @@ metadata:
   labels:
     app: controller
   name: controller
-  namespace: knative-serving
 spec:
   ports:
   - name: metrics
@@ -230,7 +227,6 @@ metadata:
   labels:
     role: webhook
   name: webhook
-  namespace: knative-serving
 spec:
   ports:
   - port: 443
@@ -253,7 +249,6 @@ data:
 kind: ConfigMap
 metadata:
   name: config-autoscaler
-  namespace: knative-serving
 ---
 apiVersion: v1
 data:
@@ -263,7 +258,6 @@ data:
 kind: ConfigMap
 metadata:
   name: config-controller
-  namespace: knative-serving
 ---
 apiVersion: v1
 data:
@@ -271,7 +265,6 @@ data:
 kind: ConfigMap
 metadata:
   name: config-domain
-  namespace: knative-serving
 ---
 apiVersion: v1
 data:
@@ -304,7 +297,6 @@ data:
 kind: ConfigMap
 metadata:
   name: config-logging
-  namespace: knative-serving
 ---
 apiVersion: v1
 data:
@@ -312,7 +304,6 @@ data:
 kind: ConfigMap
 metadata:
   name: config-network
-  namespace: knative-serving
 ---
 apiVersion: v1
 data:
@@ -365,4 +356,3 @@ data:
 kind: ConfigMap
 metadata:
   name: config-observability
-  namespace: knative-serving
