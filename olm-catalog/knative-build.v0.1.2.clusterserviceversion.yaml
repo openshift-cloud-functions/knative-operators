@@ -109,7 +109,7 @@ spec:
               initContainers:
               - name: olm-hack
                 image: lachlanevenson/k8s-kubectl
-                args: ['apply', '-f', 'https://raw.githubusercontent.com/openshift-cloud-functions/knative-operators/1cd8b8057d/knative-build/olm-hack-0.1.2.yaml']
+                args: ['apply', '-f', 'https://raw.githubusercontent.com/openshift-cloud-functions/knative-operators/3aea6b6/etc/hacks/knative-build-0.1.2.yaml']
               serviceAccountName: build-controller
       - name: build-webhook
         spec:
