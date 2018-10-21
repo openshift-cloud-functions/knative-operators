@@ -240,14 +240,18 @@ spec:
         description: "Automatically manages the whole lifecycle of your workload. It controls the creation of other objects to ensure that your app has a route, a configuration, and a new revision for each update of the service. Service can be defined to always route traffic to the latest revision or to a pinned revision."
         displayName: Knative Service
         version: v1alpha1
-    required:
-      - kind: Build
-        name: builds.build.knative.dev
-        description: Create and run on-cluster processes to completion
-        displayName: Build
-        version: v1alpha1
-      - kind: BuildTemplate
-        name: buildtemplates.build.knative.dev
-        description: Encapsulates a configurable, reusable build process
-        displayName: Build Template
-        version: v1alpha1
+
+    # TODO: Uncomment when scoped-namespacing is a thing,
+    # otherwise build gets installed in serving's namespace
+
+    # required:
+    #   - kind: Build
+    #     name: builds.build.knative.dev
+    #     description: Create and run on-cluster processes to completion
+    #     displayName: Build
+    #     version: v1alpha1
+    #   - kind: BuildTemplate
+    #     name: buildtemplates.build.knative.dev
+    #     description: Encapsulates a configurable, reusable build process
+    #     displayName: Build Template
+    #     version: v1alpha1

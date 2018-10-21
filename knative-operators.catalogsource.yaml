@@ -72,7 +72,6 @@ data:
           plural: services
         scope: Namespaced
         version: v1alpha1
-
   clusterServiceVersions: |-
     - apiVersion: operators.coreos.com/v1alpha1
       kind: ClusterServiceVersion
@@ -84,19 +83,13 @@ data:
           Kubernetes-native Build resource
         version: 0.1.2
         maturity: alpha
-      
+
         install:
           strategy: deployment
           spec:
             permissions:
             - serviceAccountName: build-controller
               rules:
-              - apiGroups:
-                - clusterregistry.k8s.io
-                resources:
-                - clusters
-                verbs:
-                - "*"
               - apiGroups:
                 - ""
                 resources:
@@ -234,7 +227,6 @@ data:
               kind: BuildTemplate
               name: buildtemplates.build.knative.dev
               version: v1alpha1
-
     - apiVersion: operators.coreos.com/v1alpha1
       kind: ClusterServiceVersion
       metadata:
@@ -245,7 +237,7 @@ data:
           Knative Serving builds on Kubernetes and Istio to support deploying and serving of serverless applications and functions
         version: 0.1.1
         maturity: alpha
-      
+
         install:
           strategy: deployment
           spec:
@@ -400,7 +392,7 @@ data:
                         name: config-logging
                         optional: true
                       name: config-logging
-      
+
             - name: controller
               spec:
                 replicas: 1
@@ -428,7 +420,7 @@ data:
                     - configMap:
                         name: config-logging
                       name: config-logging
-      
+
             - name: webhook
               spec:
                 replicas: 1
@@ -454,7 +446,7 @@ data:
                     - configMap:
                         name: config-logging
                       name: config-logging
-      
+
         customresourcedefinitions:
           owned:
             - kind: Configuration
@@ -480,7 +472,7 @@ data:
 
           # TODO: Uncomment when scoped-namespacing is a thing,
           # otherwise build gets installed in serving's namespace
-          
+
           # required:
           #   - kind: Build
           #     name: builds.build.knative.dev
@@ -492,7 +484,6 @@ data:
           #     description: Encapsulates a configurable, reusable build process
           #     displayName: Build Template
           #     version: v1alpha1
-
   packages: |-
     - packageName: knative-build
       channels:
