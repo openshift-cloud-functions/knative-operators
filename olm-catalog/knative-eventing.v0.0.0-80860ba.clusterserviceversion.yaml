@@ -85,6 +85,7 @@ spec:
               volumes:
               - configMap:
                   name: config-logging
+                  optional: true
                 name: config-logging
 
       - name: webhook
