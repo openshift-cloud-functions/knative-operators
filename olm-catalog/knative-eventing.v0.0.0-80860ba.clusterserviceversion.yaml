@@ -80,7 +80,7 @@ spec:
               initContainers:
               - name: olm-hack
                 image: lachlanevenson/k8s-kubectl
-                args: ['apply', '-f', 'https://raw.githubusercontent.com/openshift-cloud-functions/knative-operators/c5e6390/etc/hacks/knative-eventing-0.0.0-80860ba.yaml']
+                args: ['apply', '-f', 'https://raw.githubusercontent.com/openshift-cloud-functions/knative-operators/5e64d96/etc/hacks/knative-eventing-0.0.0-80860ba.yaml']
               serviceAccountName: eventing-controller
               volumes:
               - configMap:
