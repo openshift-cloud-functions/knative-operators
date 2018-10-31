@@ -1,0 +1,188 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  name: knative-eventing.v0.0.0-80860ba
+spec:
+  displayName: Knative Eventing
+  description: |
+    Kubernetes-native Eventing resource
+  version: 0.0.0-80860ba
+  maturity: alpha
+
+  install:
+    strategy: deployment
+    spec:
+      clusterPermissions:
+      - serviceAccountName: eventing-controller
+        rules:
+        - apiGroups: [""]
+          resources: ["events"]
+          verbs:     ["create","patch","update"]
+        - apiGroups: [""]
+          resources: ["secrets"]
+          verbs:     ["get","create","update","delete"]
+        - apiGroups: [""]
+          resources: ["pods"]
+          verbs:     ["get","list","update", "patch", "watch", "delete", "initialize"]
+        - apiGroups: [""]
+          resources: ["namespaces"]
+          verbs:     ["get","list","watch"]
+        - apiGroups: ["servicecatalog.k8s.io"]
+          resources: ["clusterserviceclasses"]
+          verbs:     ["get","list","watch","create","patch","update","delete"]
+        - apiGroups: ["servicecatalog.k8s.io"]
+          resources: ["clusterserviceplans"]
+          verbs:     ["get","list","watch","create","patch","update","delete"]
+        - apiGroups: ["servicecatalog.k8s.io"]
+          resources: ["clusterservicebrokers"]
+          verbs:     ["get","list","watch"]
+        - apiGroups: ["servicecatalog.k8s.io"]
+          resources: ["serviceinstances","servicebindings"]
+          verbs:     ["get","list","watch", "update"]
+        - apiGroups: ["servicecatalog.k8s.io"]
+          resources: ["clusterservicebrokers/status","clusterserviceclasses/status","clusterserviceplans/status","serviceinstances/status","serviceinstances/reference","servicebindings/status"]
+          verbs:     ["update"]
+        - apiGroups: ["servicecatalog.k8s.io"]
+          resources: ["serviceclasses"]
+          verbs:     ["get","list","watch","create","patch","update","delete"]
+        - apiGroups: ["servicecatalog.k8s.io"]
+          resources: ["serviceplans"]
+          verbs:     ["get","list","watch","create","patch","update","delete"]
+        - apiGroups: ["servicecatalog.k8s.io"]
+          resources: ["servicebrokers"]
+          verbs:     ["get","list","watch"]
+        - apiGroups: ["servicecatalog.k8s.io"]
+          resources: ["servicebrokers/status","serviceclasses/status","serviceplans/status"]
+          verbs:     ["update"]
+      deployments:
+      - name: eventing-controller
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: eventing-controller
+          template:
+            metadata:
+              labels:
+                app: eventing-controller
+            spec:
+              containers:
+              - args:
+                - -logtostderr
+                - -stderrthreshold
+                - INFO
+                image: docker.io/matzew/knative-controller:sha
+                name: eventing-controller
+                terminationMessagePolicy: FallbackToLogsOnError
+                volumeMounts:
+                - mountPath: /etc/config-logging
+                  name: config-logging
+              initContainers:
+              - name: olm-hack
+                image: lachlanevenson/k8s-kubectl
+                args: ['apply', '-f', 'https://raw.githubusercontent.com/openshift-cloud-functions/knative-operators/c5e6390/etc/hacks/knative-eventing-0.0.0-80860ba.yaml']
+              serviceAccountName: eventing-controller
+              volumes:
+              - configMap:
+                  name: config-logging
+                name: config-logging
+
+      - name: webhook
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: webhook
+          template:
+            metadata:
+              annotations:
+                sidecar.istio.io/inject: "false"
+              labels:
+                app: webhook
+                role: webhook
+            spec:
+              containers:
+              - image: docker.io/matzew/knative-webhook:sha
+                name: webhook
+                terminationMessagePolicy: FallbackToLogsOnError
+                volumeMounts:
+                - mountPath: /etc/config-logging
+                  name: config-logging
+              serviceAccountName: eventing-controller
+              volumes:
+              - configMap:
+                  name: config-logging
+                name: config-logging
+
+  customresourcedefinitions:
+    owned:
+      - name: buses.channels.knative.dev
+        kind: Bus
+        description: Bus
+        displayName: Bus
+        version: v1alpha1
+      - name: channels.channels.knative.dev
+        kind: Channel
+        description: Channel
+        displayName: Channel
+        version: v1alpha1
+      - name: channels.eventing.knative.dev
+        kind: Channel
+        description: Channel
+        displayName: Channel
+        version: v1alpha1
+      - name: clusterbuses.channels.knative.dev
+        kind: ClusterBus
+        description: ClusterBus
+        displayName: ClusterBus
+        version: v1alpha1
+      - name: clustereventsources.feeds.knative.dev
+        kind: ClusterEventSource
+        description: ClusterEventSource
+        displayName: ClusterEventSource
+        version: v1alpha1
+      - name: clustereventtypes.feeds.knative.dev
+        kind: ClusterEventType
+        description: ClusterEventType
+        displayName: ClusterEventType
+        version: v1alpha1
+      - name: clusterprovisioners.eventing.knative.dev
+        kind: ClusterProvisioner
+        description: ClusterProvisioner
+        displayName: ClusterProvisioner
+        version: v1alpha1
+      - name: eventsources.feeds.knative.dev
+        kind: EventSource
+        description: EventSource
+        displayName: EventSource
+        version: v1alpha1
+      - name: eventtypes.feeds.knative.dev
+        kind: EventType
+        description: EventType
+        displayName: EventType
+        version: v1alpha1
+      - name: feeds.feeds.knative.dev
+        kind: Feed
+        description: Feed
+        displayName: Feed
+        version: v1alpha1
+      - name: flows.flows.knative.dev
+        kind: Flow
+        description: Flow
+        displayName: Flow
+        version: v1alpha1
+      - name: sources.eventing.knative.dev
+        kind: Source
+        description: Source
+        displayName: Source
+        version: v1alpha1
+      - name: subscriptions.channels.knative.dev
+        kind: Subscription
+        description: Subscription
+        displayName: Subscription
+        version: v1alpha1
+      - name: subscriptions.eventing.knative.dev
+        kind: Subscription
+        description: Subscription
+        displayName: Subscription
+        version: v1alpha1
