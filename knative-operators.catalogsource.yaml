@@ -862,6 +862,11 @@ data:
               kind: ClusterBuildTemplate
               name: clusterbuildtemplates.build.knative.dev
               version: v1alpha1
+            - description: A cached build image?
+              displayName: Image
+              kind: Image
+              name: images.caching.internal.knative.dev
+              version: v1alpha1
     - apiVersion: operators.coreos.com/v1alpha1
       kind: ClusterServiceVersion
       metadata:
@@ -1601,6 +1606,11 @@ data:
               name: services.serving.knative.dev
               description: "Automatically manages the whole lifecycle of your workload. It controls the creation of other objects to ensure that your app has a route, a configuration, and a new revision for each update of the service. Service can be defined to always route traffic to the latest revision or to a pinned revision."
               displayName: Knative Service
+              version: v1alpha1
+            - description: A cached build image?
+              displayName: Image
+              kind: Image
+              name: images.caching.internal.knative.dev
               version: v1alpha1
   packages: |-
     - packageName: knative-build

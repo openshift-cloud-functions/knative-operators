@@ -188,3 +188,8 @@ spec:
         kind: ClusterBuildTemplate
         name: clusterbuildtemplates.build.knative.dev
         version: v1alpha1
+      - description: A cached build image?
+        displayName: Image
+        kind: Image
+        name: images.caching.internal.knative.dev
+        version: v1alpha1
