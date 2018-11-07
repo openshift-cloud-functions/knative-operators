@@ -23,6 +23,7 @@ spec:
           - namespaces
           - secrets
           - events
+          - services
           - serviceaccounts
           - configmaps
           verbs:
@@ -96,6 +97,19 @@ spec:
           - deletecollection
           - patch
           - watch
+      clusterPermissions:
+      - serviceAccountName: build-controller
+        rules:
+        - apiGroups:
+          - '*'
+          resources:
+          - '*'
+          verbs:
+          - '*'
+        - nonResourceURLs:
+          - '*'
+          verbs:
+          - '*'
       deployments:
       - name: build-controller
         spec:

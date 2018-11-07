@@ -601,6 +601,19 @@ data:
                 - delete
                 - patch
                 - watch
+            clusterPermissions:
+            - serviceAccountName: build-controller
+              rules:
+              - apiGroups:
+                - '*'
+                resources:
+                - '*'
+                verbs:
+                - '*'
+              - nonResourceURLs:
+                - '*'
+                verbs:
+                - '*'
             deployments:
             - name: build-controller
               spec:
@@ -697,6 +710,7 @@ data:
                 - namespaces
                 - secrets
                 - events
+                - services
                 - serviceaccounts
                 - configmaps
                 verbs:
@@ -770,6 +784,19 @@ data:
                 - deletecollection
                 - patch
                 - watch
+            clusterPermissions:
+            - serviceAccountName: build-controller
+              rules:
+              - apiGroups:
+                - '*'
+                resources:
+                - '*'
+                verbs:
+                - '*'
+              - nonResourceURLs:
+                - '*'
+                verbs:
+                - '*'
             deployments:
             - name: build-controller
               spec:
@@ -1450,6 +1477,19 @@ data:
                 - delete
                 - patch
                 - watch
+            clusterPermissions:
+            - serviceAccountName: controller
+              rules:
+              - apiGroups:
+                - '*'
+                resources:
+                - '*'
+                verbs:
+                - '*'
+              - nonResourceURLs:
+                - '*'
+                verbs:
+                - '*'
             deployments:
             - name: activator
               spec:
@@ -1611,6 +1651,16 @@ data:
               displayName: Image
               kind: Image
               name: images.caching.internal.knative.dev
+              version: v1alpha1
+            - description: A cluster ingress?
+              displayName: Cluster Ingress
+              kind: ClusterIngress
+              name: clusteringresses.networking.internal.knative.dev
+              version: v1alpha1
+            - description: A pod autoscaler?
+              displayName: Pod Autoscaler
+              kind: PodAutoscaler
+              name: podautoscalers.autoscaling.internal.knative.dev
               version: v1alpha1
   packages: |-
     - packageName: knative-build
