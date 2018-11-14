@@ -45,10 +45,8 @@ $DIR/prep-knative.sh
 # istio
 git clone https://github.com/minishift/minishift-addons $REPO_DIR/minishift-addons
 minishift addon install $REPO_DIR/minishift-addons/add-ons/istio
-minishift addon apply istio
-sleep 10                        # the istio operator is weird
-timeout 300 bash -c -- 'while oc get pods -n istio-operator | grep -v -E "(Running|Completed|STATUS)"; do sleep 5; done'
-timeout 300 bash -c -- 'while oc get pods -n istio-system | grep -v -E "(Running|Completed|STATUS)"; do sleep 5; done'
+until minishift addon apply istio; do sleep 1; done
+timeout 600 bash -c -- 'until oc get pods -n istio-system | grep openshift-ansible-istio-installer | grep Completed; do sleep 5; oc get pods -n istio-system; done'
 
 # OLM
 git clone https://github.com/operator-framework/operator-lifecycle-manager $REPO_DIR/olm
