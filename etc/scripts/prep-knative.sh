@@ -26,7 +26,7 @@ if ! minishift openshift config view --target=kube | grep ValidatingAdmissionWeb
 fi
 
 # wait until the kube-apiserver is restarted
-until oc login -u admin -p admin; do sleep 5; done;
+until oc login -u admin -p admin 2>/dev/null; do sleep 5; done;
 
 oc project myproject
 oc adm policy add-scc-to-user privileged -z default
