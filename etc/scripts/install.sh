@@ -46,7 +46,8 @@ $DIR/prep-knative.sh
 git clone https://github.com/minishift/minishift-addons $REPO_DIR/minishift-addons
 minishift addon install $REPO_DIR/minishift-addons/add-ons/istio
 minishift addon apply istio
-sleep 10                        # it takes istio a while to start any pods
+sleep 10                        # the istio operator is weird
+timeout 300 bash -c -- 'while oc get pods -n istio-operator | grep -v -E "(Running|Completed|STATUS)"; do sleep 5; done'
 timeout 300 bash -c -- 'while oc get pods -n istio-system | grep -v -E "(Running|Completed|STATUS)"; do sleep 5; done'
 
 # OLM
@@ -58,9 +59,9 @@ timeout 300 bash -c -- 'while oc get pods -n openshift-operator-lifecycle-manage
 oc apply -f $DIR/../../knative-operators.catalogsource.yaml
 
 # for now, we must install the operators in specific namespaces, so...
-oc new-project knative-build
-oc new-project knative-serving
-oc new-project knative-eventing
+oc create ns knative-build
+oc create ns knative-serving
+oc create ns knative-eventing
 
 # install the operators for build, serving, and eventing
 cat <<EOF | oc apply -f -
