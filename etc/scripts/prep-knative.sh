@@ -2,7 +2,8 @@
 
 set -x
 
-minishift openshift config set --target=kube --patch '{
+if ! minishift openshift config view --target=kube | grep ValidatingAdmissionWebhook >/dev/null; then
+  minishift openshift config set --target=kube --patch '{
     "admissionConfig": {
         "pluginConfig": {
             "ValidatingAdmissionWebhook": {
@@ -22,6 +23,7 @@ minishift openshift config set --target=kube --patch '{
         }
     }
 }'
+fi
 
 # wait until the kube-apiserver is restarted
 until oc login -u admin -p admin; do sleep 5; done;
