@@ -29,7 +29,7 @@ fi
 until oc login -u admin -p admin 2>/dev/null; do sleep 5; done;
 
 oc project myproject
-oc adm policy add-scc-to-user privileged -z default
+until oc adm policy add-scc-to-user privileged -z default; do sleep 5; done
 
 # for the OLM console
 oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:kube-system:default
