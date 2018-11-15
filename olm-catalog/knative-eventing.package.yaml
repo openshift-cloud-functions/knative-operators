@@ -1,4 +1,4 @@
 packageName: knative-eventing
 channels:
 - name: alpha
-  currentCSV: knative-eventing.v0.0.0-80860ba
+  currentCSV: knative-eventing.v0.2.0
