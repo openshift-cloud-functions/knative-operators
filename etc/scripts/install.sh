@@ -8,7 +8,7 @@
 
 # Waits for all pods in the given namespace to complete successfully.
 function wait_for_all_pods {
-  timeout 300 bash -c -- "while oc get pods -n $1 | grep -v -E '(Running|Completed|STATUS)'; do sleep 5; done"
+  timeout 300 bash -c -- "while oc get pods -n $1 | grep -v 'No resources found.' | grep -v -E '(Running|Completed|STATUS)'; do sleep 5; done"
 }
 
 KNATIVE_BUILD_VERSION=v0.2.0
