@@ -6,6 +6,11 @@
 # thereby guaranteeing (hopefully) a clean environment upon successful
 # completion. 
 
+# Waits for all pods in the given namespace to complete successfully.
+function wait_for_all_pods {
+  timeout 300 bash -c -- "while oc get pods -n $1 | grep -v 'No resources found.' | grep -v -E '(Running|Completed|STATUS)'; do sleep 5; done"
+}
+
 KNATIVE_BUILD_VERSION=v0.2.0
 KNATIVE_SERVING_VERSION=v0.2.1
 KNATIVE_EVENTING_VERSION=v0.0.0-80860ba
@@ -20,8 +25,8 @@ set -x
 DIR=$(cd $(dirname "$0") && pwd)
 REPO_DIR=$DIR/.repos
 
-rm -rf $REPO_DIR
-mkdir -p $REPO_DIR
+rm -rf "$REPO_DIR"
+mkdir -p "$REPO_DIR"
 
 # blow away everything first
 minishift profile delete knative --force
@@ -39,22 +44,22 @@ minishift addons enable anyuid
 # Start minishift
 minishift start
 
-eval $(minishift oc-env)
-$DIR/prep-knative.sh
+eval "$(minishift oc-env)"
+"$DIR/prep-knative.sh"
 
 # istio
-git clone https://github.com/minishift/minishift-addons $REPO_DIR/minishift-addons
-minishift addon install $REPO_DIR/minishift-addons/add-ons/istio
+git clone https://github.com/minishift/minishift-addons "$REPO_DIR/minishift-addons"
+minishift addon install "$REPO_DIR/minishift-addons/add-ons/istio"
 until minishift addon apply istio; do sleep 1; done
 timeout 600 bash -c -- 'until oc get pods -n istio-system | grep openshift-ansible-istio-installer | grep Completed; do sleep 5; oc get pods -n istio-system; done'
 
 # OLM
-git clone https://github.com/operator-framework/operator-lifecycle-manager $REPO_DIR/olm
-oc create -f $REPO_DIR/olm/deploy/okd/manifests/latest/
-timeout 300 bash -c -- 'while oc get pods -n openshift-operator-lifecycle-manager | grep -v -E "(Running|Completed|STATUS)"; do sleep 5; done'
+git clone https://github.com/operator-framework/operator-lifecycle-manager "$REPO_DIR/olm"
+oc create -f "$REPO_DIR/olm/deploy/okd/manifests/latest/"
+wait_for_all_pods openshift-operator-lifecycle-manager
 
 # knative catalog source
-oc apply -f $DIR/../../knative-operators.catalogsource.yaml
+oc apply -f "$DIR/../../knative-operators.catalogsource.yaml"
 
 # for now, we must install the operators in specific namespaces, so...
 oc create ns knative-build
@@ -99,3 +104,7 @@ spec:
   startingCSV: knative-eventing.${KNATIVE_EVENTING_VERSION}
   channel: alpha
 EOF
+
+wait_for_all_pods knative-serving
+wait_for_all_pods knative-build
+wait_for_all_pods knative-eventing
