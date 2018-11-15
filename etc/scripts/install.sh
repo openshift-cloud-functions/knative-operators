@@ -6,6 +6,11 @@
 # thereby guaranteeing (hopefully) a clean environment upon successful
 # completion. 
 
+# Waits for all pods in the given namespace to complete successfully.
+function wait_for_all_pods {
+  timeout 300 bash -c -- "while oc get pods -n $1 | grep -v -E '(Running|Completed|STATUS)'; do sleep 5; done"
+}
+
 KNATIVE_BUILD_VERSION=v0.2.0
 KNATIVE_SERVING_VERSION=v0.2.1
 KNATIVE_EVENTING_VERSION=v0.0.0-80860ba
@@ -51,7 +56,7 @@ timeout 600 bash -c -- 'until oc get pods -n istio-system | grep openshift-ansib
 # OLM
 git clone https://github.com/operator-framework/operator-lifecycle-manager "$REPO_DIR/olm"
 oc create -f "$REPO_DIR/olm/deploy/okd/manifests/latest/"
-timeout 300 bash -c -- 'while oc get pods -n openshift-operator-lifecycle-manager | grep -v -E "(Running|Completed|STATUS)"; do sleep 5; done'
+wait_for_all_pods openshift-operator-lifecycle-manager
 
 # knative catalog source
 oc apply -f "$DIR/../../knative-operators.catalogsource.yaml"
@@ -99,3 +104,7 @@ spec:
   startingCSV: knative-eventing.${KNATIVE_EVENTING_VERSION}
   channel: alpha
 EOF
+
+wait_for_all_pods knative-serving
+wait_for_all_pods knative-build
+wait_for_all_pods knative-eventing
