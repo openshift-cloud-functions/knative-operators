@@ -990,64 +990,8 @@ data:
         install:
           strategy: deployment
           spec:
-            permissions:
-            - serviceAccountName: in-memory-channel-controller
-              rules:
-              - apiGroups:
-                - eventing.knative.dev
-                resources:
-                - channels
-                - clusterchannelprovisioners
-                verbs:
-                - get
-                - list
-                - watch
-                - update
-              - apiGroups:
-                - eventing.knative.dev
-                resources:
-                - channels/finalizers
-                verbs:
-                - update
-              - apiGroups:
-                - ""
-                resources:
-                - configmaps
-                - services
-                verbs:
-                - get
-                - list
-                - watch
-                - create
-              - apiGroups:
-                - ""
-                resourceNames:
-                - in-memory-channel-dispatcher-config-map
-                resources:
-                - configmaps
-                verbs:
-                - update
-              - apiGroups:
-                - networking.istio.io
-                resources:
-                - virtualservices
-                verbs:
-                - get
-                - list
-                - watch
-                - create
-            - serviceAccountName: in-memory-channel-dispatcher
-              rules:
-              - apiGroups:
-                - ""
-                resources:
-                - configmaps
-                verbs:
-                - get
-                - list
-                - watch
             clusterPermissions:
-            - serviceAccountName: eventing-controller
+            - serviceAccountName: default
               rules:
               - apiGroups:
                 - '*'
@@ -1059,148 +1003,6 @@ data:
                 - '*'
                 verbs:
                 - '*'
-            - serviceAccountName: default
-              rules:
-              - apiGroups:
-                - apps
-                resources:
-                - deployments
-                verbs:
-                - get
-                - list
-                - watch
-                - create
-                - update
-                - patch
-                - delete
-              - apiGroups:
-                - sources.eventing.knative.dev
-                resources:
-                - containersources
-                verbs:
-                - get
-                - list
-                - watch
-                - create
-                - update
-                - patch
-                - delete
-              - apiGroups:
-                - serving.knative.dev
-                resources:
-                - services
-                verbs:
-                - get
-                - list
-                - watch
-              - apiGroups:
-                - eventing.knative.dev
-                resources:
-                - channels
-                verbs:
-                - get
-                - list
-                - watch
-              - apiGroups:
-                - apps
-                resources:
-                - deployments
-                verbs:
-                - get
-                - list
-                - watch
-                - create
-                - update
-                - patch
-                - delete
-              - apiGroups:
-                - sources.eventing.knative.dev
-                resources:
-                - gcppubsubsources
-                verbs:
-                - get
-                - list
-                - watch
-                - create
-                - update
-                - patch
-                - delete
-              - apiGroups:
-                - eventing.knative.dev
-                resources:
-                - channels
-                verbs:
-                - get
-                - list
-                - watch
-              - apiGroups:
-                - serving.knative.dev
-                resources:
-                - services
-                verbs:
-                - get
-                - list
-                - watch
-                - create
-                - update
-                - patch
-                - delete
-              - apiGroups:
-                - sources.eventing.knative.dev
-                resources:
-                - githubsources
-                verbs:
-                - get
-                - list
-                - watch
-                - create
-                - update
-                - patch
-                - delete
-              - apiGroups:
-                - ""
-                resources:
-                - secrets
-                verbs:
-                - get
-                - list
-                - watch
-              - apiGroups:
-                - sources.eventing.knative.dev
-                resources:
-                - kuberneteseventsources
-                verbs:
-                - get
-                - list
-                - watch
-                - create
-                - update
-                - patch
-                - delete
-              - apiGroups:
-                - sources.eventing.knative.dev
-                resources:
-                - containersources
-                verbs:
-                - get
-                - list
-                - watch
-                - create
-                - update
-                - patch
-                - delete
-              - apiGroups:
-                - ""
-                resources:
-                - events
-                verbs:
-                - get
-                - list
-                - watch
-                - create
-                - update
-                - patch
-                - delete
 
             deployments:
             - name: eventing-controller
@@ -1230,7 +1032,7 @@ data:
                     - name: olm-hack
                       image: lachlanevenson/k8s-kubectl
                       args: ['apply', '-f', 'https://raw.githubusercontent.com/openshift-cloud-functions/knative-operators/ffc60a7/etc/hacks/knative-eventing-0.2.0.yaml']
-                    serviceAccountName: eventing-controller
+                    serviceAccountName: default
                     volumes:
                     - configMap:
                         name: config-logging
@@ -1258,7 +1060,7 @@ data:
                       volumeMounts:
                       - mountPath: /etc/config-logging
                         name: config-logging
-                    serviceAccountName: eventing-controller
+                    serviceAccountName: default
                     volumes:
                     - configMap:
                         name: config-logging
@@ -1280,7 +1082,7 @@ data:
                     containers:
                     - image: gcr.io/knative-releases/github.com/knative/eventing/pkg/controller/eventing/inmemory/controller@sha256:cbc86e2faa593cdd34c2ed54fd171fcbed4bfa26017c1e7db554c584162a8846
                       name: controller
-                    serviceAccountName: in-memory-channel-controller
+                    serviceAccountName: default
 
             - name: in-memory-channel-dispatcher
               spec:
@@ -1305,7 +1107,7 @@ data:
                       - --config_map_name=in-memory-channel-dispatcher-config-map
                       image: gcr.io/knative-releases/github.com/knative/eventing/cmd/fanoutsidecar@sha256:b57a317067d9a4299f08f6b05f161e50c8ac9b5e2cca812c41a938ad8b12ab38
                       name: dispatcher
-                    serviceAccountName: in-memory-channel-dispatcher
+                    serviceAccountName: default
 
         customresourcedefinitions:
           owned:
