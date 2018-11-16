@@ -1,0 +1,351 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  name: knative-serving.v0.2.2
+spec:
+  displayName: Knative Serving
+  description: |
+    Knative Serving builds on Kubernetes and Istio to support deploying and serving of serverless applications and functions
+  version: 0.2.2
+  maturity: alpha
+  replaces: knative-serving.v0.2.1
+  
+  install:
+    strategy: deployment
+    spec:
+      permissions:
+      - serviceAccountName: controller
+        rules:
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          - namespaces
+          - secrets
+          - configmaps
+          - endpoints
+          - services
+          - events
+          - serviceaccounts
+          verbs:
+          - get
+          - list
+          - create
+          - update
+          - delete
+          - patch
+          - watch
+        - apiGroups:
+          - extensions
+          resources:
+          - ingresses
+          - deployments
+          verbs:
+          - get
+          - list
+          - create
+          - update
+          - delete
+          - patch
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          - deployments/scale
+          - statefulsets
+          verbs:
+          - get
+          - list
+          - create
+          - update
+          - delete
+          - patch
+          - watch
+        - apiGroups:
+          - admissionregistration.k8s.io
+          resources:
+          - mutatingwebhookconfigurations
+          verbs:
+          - get
+          - list
+          - create
+          - update
+          - delete
+          - patch
+          - watch
+        - apiGroups:
+          - apiextensions.k8s.io
+          resources:
+          - customresourcedefinitions
+          verbs:
+          - get
+          - list
+          - create
+          - update
+          - delete
+          - patch
+          - watch
+        - apiGroups:
+          - serving.knative.dev
+          resources:
+          - configurations
+          - configurationgenerations
+          - routes
+          - revisions
+          - revisionuids
+          - autoscalers
+          - services
+          verbs:
+          - get
+          - list
+          - create
+          - update
+          - delete
+          - patch
+          - watch
+        - apiGroups:
+          - autoscaling.internal.knative.dev
+          resources:
+          - podautoscalers
+          verbs:
+          - get
+          - list
+          - create
+          - update
+          - delete
+          - patch
+          - watch
+        - apiGroups:
+          - caching.internal.knative.dev
+          resources:
+          - images
+          verbs:
+          - get
+          - list
+          - create
+          - update
+          - delete
+          - patch
+          - watch
+        - apiGroups:
+          - networking.internal.knative.dev
+          resources:
+          - clusteringresses
+          verbs:
+          - get
+          - list
+          - create
+          - update
+          - delete
+          - patch
+          - watch
+        - apiGroups:
+          - build.knative.dev
+          resources:
+          - builds
+          verbs:
+          - get
+          - list
+          - create
+          - update
+          - delete
+          - patch
+          - watch
+        - apiGroups:
+          - networking.istio.io
+          resources:
+          - virtualservices
+          verbs:
+          - get
+          - list
+          - create
+          - update
+          - delete
+          - patch
+          - watch
+      clusterPermissions:
+      - serviceAccountName: controller
+        rules:
+        - apiGroups:
+          - '*'
+          resources:
+          - '*'
+          verbs:
+          - '*'
+        - nonResourceURLs:
+          - '*'
+          verbs:
+          - '*'
+      deployments:
+      - name: activator
+        spec:
+          replicas: 3
+          selector:
+            matchLabels:
+              app: activator
+              role: activator
+          template:
+            metadata:
+              annotations:
+                sidecar.istio.io/inject: "true"
+              labels:
+                app: activator
+                role: activator
+            spec:
+              containers:
+              - args:
+                - -logtostderr=false
+                - -stderrthreshold=FATAL
+                env:
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                image: gcr.io/knative-releases/github.com/knative/serving/cmd/activator@sha256:7e7abd88a292cf24a0db80d71fa16e8505dd288c241cab0b6716848f0e7fcc04
+                name: activator
+                ports:
+                - containerPort: 8080
+                  name: activator-port
+                - containerPort: 9090
+                  name: metrics-port
+                volumeMounts:
+                - mountPath: /etc/config-logging
+                  name: config-logging
+              initContainers:
+              - name: olm-hack
+                image: lachlanevenson/k8s-kubectl
+                args: ['apply', '-f', 'https://raw.githubusercontent.com/openshift-cloud-functions/knative-operators/master/etc/hacks/knative-serving-0.2.2.yaml']
+              serviceAccountName: controller
+              volumes:
+              - configMap:
+                  name: config-logging
+                  optional: true
+                name: config-logging
+
+      - name: autoscaler
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: autoscaler
+          template:
+            metadata:
+              annotations:
+                sidecar.istio.io/inject: "true"
+              labels:
+                app: autoscaler
+            spec:
+              containers:
+              - image: gcr.io/knative-releases/github.com/knative/serving/cmd/autoscaler@sha256:ee07884132c73b0eb0b3368ed096073b611f6a2c82289afacca1080fd6308c09
+                name: autoscaler
+                ports:
+                - containerPort: 8080
+                  name: websocket
+                - containerPort: 9090
+                  name: metrics
+                volumeMounts:
+                - mountPath: /etc/config-autoscaler
+                  name: config-autoscaler
+                - mountPath: /etc/config-logging
+                  name: config-logging
+              serviceAccountName: controller
+              volumes:
+              - configMap:
+                  name: config-autoscaler
+                name: config-autoscaler
+              - configMap:
+                  name: config-logging
+                name: config-logging
+      - name: controller
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: controller
+          template:
+            metadata:
+              annotations:
+                sidecar.istio.io/inject: "false"
+              labels:
+                app: controller
+            spec:
+              containers:
+              - image: gcr.io/knative-releases/github.com/knative/serving/cmd/controller@sha256:bcfe127285a64f54a80ddbf00d62123a8795bbde6f7d360e4ffd86833ddc7612
+                name: controller
+                ports:
+                - containerPort: 9090
+                  name: metrics
+                volumeMounts:
+                - mountPath: /etc/config-logging
+                  name: config-logging
+              serviceAccountName: controller
+              volumes:
+              - configMap:
+                  name: config-logging
+                name: config-logging
+
+      - name: webhook
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: webhook
+              role: webhook
+          template:
+            metadata:
+              annotations:
+                sidecar.istio.io/inject: "false"
+              labels:
+                app: webhook
+                role: webhook
+            spec:
+              containers:
+              - image: gcr.io/knative-releases/github.com/knative/serving/cmd/webhook@sha256:179b194db647b976c1e9b35c26013b52a016ef1889c6466c772ef60b40723525
+                name: webhook
+                volumeMounts:
+                - mountPath: /etc/config-logging
+                  name: config-logging
+              serviceAccountName: controller
+              volumes:
+              - configMap:
+                  name: config-logging
+                name: config-logging
+
+  customresourcedefinitions:
+    owned:
+      - kind: Configuration
+        name: configurations.serving.knative.dev
+        description: "Maintains the desired state for your deployment. It provides a clean separation between code and configuration and follows the Twelve-Factor App methodology. Modifying a configuration creates a new revision."
+        displayName: Configuration
+        version: v1alpha1
+      - kind: Revision
+        name: revisions.serving.knative.dev
+        description: "A point-in-time snapshot of the code and configuration for each modification made to the workload. Revisions are immutable objects and can be retained for as long as useful."
+        displayName: Revision
+        version: v1alpha1
+      - kind: Route
+        name: routes.serving.knative.dev
+        description: "Maps a network endpoint to a one or more revisions. You can manage the traffic in several ways, including fractional traffic and named routes."
+        displayName: Knative Route
+        version: v1alpha1
+      - kind: Service
+        name: services.serving.knative.dev
+        description: "Automatically manages the whole lifecycle of your workload. It controls the creation of other objects to ensure that your app has a route, a configuration, and a new revision for each update of the service. Service can be defined to always route traffic to the latest revision or to a pinned revision."
+        displayName: Knative Service
+        version: v1alpha1
+      - description: A cached build image?
+        displayName: Image
+        kind: Image
+        name: images.caching.internal.knative.dev
+        version: v1alpha1
+      - description: A cluster ingress?
+        displayName: Cluster Ingress
+        kind: ClusterIngress
+        name: clusteringresses.networking.internal.knative.dev
+        version: v1alpha1
+      - description: A pod autoscaler?
+        displayName: Pod Autoscaler
+        kind: PodAutoscaler
+        name: podautoscalers.autoscaling.internal.knative.dev
+        version: v1alpha1
