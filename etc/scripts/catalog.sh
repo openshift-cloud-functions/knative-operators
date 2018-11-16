@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 DIR=$(cd $(dirname "$0")/../../olm-catalog && pwd)
 
