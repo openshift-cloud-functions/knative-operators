@@ -23,6 +23,8 @@ REPO_DIR=$DIR/.repos
 rm -rf "$REPO_DIR"
 mkdir -p "$REPO_DIR"
 
+function timeout() { perl -e 'alarm shift; exec @ARGV' "$@"; }
+
 # Waits for all pods in the given namespace to complete successfully.
 function wait_for_all_pods {
   timeout 300 bash -c -- "while oc get pods -n $1 2>&1 | grep -v -E '(Running|Completed|STATUS)'; do sleep 5; done"
