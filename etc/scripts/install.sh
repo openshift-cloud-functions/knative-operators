@@ -6,8 +6,8 @@
 # thereby guaranteeing (hopefully) a clean environment upon successful
 # completion. 
 
-KNATIVE_BUILD_VERSION=v0.2.0
 KNATIVE_SERVING_VERSION=v0.2.2
+KNATIVE_BUILD_VERSION=v0.2.0
 KNATIVE_EVENTING_VERSION=v0.2.0
 
 set -x
@@ -17,16 +17,25 @@ if minishift status | grep "Minishift:  Running" >/dev/null; then
   exit 1
 fi
 
+# Loops until duration (car) is exceeded or command (cdr) returns non-zero
+function timeout() {
+  SECONDS=0; TIMEOUT=$1; shift
+  while eval $*; do
+    sleep 5
+    [[ $SECONDS -gt $TIMEOUT ]] && echo "ERROR: Timed out" && exit -1
+  done
+}
+
+# Waits for all pods in the given namespace to complete successfully.
+function wait_for_all_pods {
+  timeout 300 "oc get pods -n $1 2>&1 | grep -v -E '(Running|Completed|STATUS)'"
+}
+
 DIR=$(cd $(dirname "$0") && pwd)
 REPO_DIR=$DIR/.repos
 
 rm -rf "$REPO_DIR"
 mkdir -p "$REPO_DIR"
-
-# Waits for all pods in the given namespace to complete successfully.
-function wait_for_all_pods {
-  timeout 300 bash -c -- "while oc get pods -n $1 2>&1 | grep -v -E '(Running|Completed|STATUS)'; do sleep 5; done"
-}
 
 # blow away everything first
 minishift profile delete knative --force
@@ -51,7 +60,7 @@ eval "$(minishift oc-env)"
 git clone https://github.com/minishift/minishift-addons "$REPO_DIR/minishift-addons"
 minishift addon install "$REPO_DIR/minishift-addons/add-ons/istio"
 until minishift addon apply istio; do sleep 1; done
-timeout 600 bash -c -- 'until oc get pods -n istio-system | grep openshift-ansible-istio-installer | grep Completed; do sleep 5; oc get pods -n istio-system; done'
+timeout 600 "oc get pods -n istio-system; [[ $(oc get pods -n istio-system | grep openshift-ansible-istio-installer | grep -c Completed) -eq 0 ]]"
 
 # Disable mTLS in istio
 oc delete MeshPolicy default
@@ -110,7 +119,7 @@ spec:
 EOF
 
 wait_for_all_pods knative-build
-wait_for_all_pods knative-serving
 wait_for_all_pods knative-eventing
+wait_for_all_pods knative-serving
 
 oc get pods --all-namespaces
