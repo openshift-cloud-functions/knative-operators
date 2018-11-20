@@ -122,9 +122,8 @@ wait_for_all_pods knative-build
 wait_for_all_pods knative-eventing
 wait_for_all_pods knative-serving
 
-# Make the internal registry usable for Knative serving by skipping tag resolving
-val=$(oc -n knative-serving get cm config-controller -ojson | jq -r .data.registriesSkippingTagResolving | awk '{print $1",docker-registry.default.svc:5000"}')
-oc -n knative-serving get cm config-controller -ojson | jq ".data.registriesSkippingTagResolving = $val" | oc apply -f -
+# skip tag resolving for internal registry
+oc -n knative-serving get cm config-controller -oyaml | sed "s/\(^ *registriesSkippingTagResolving.*$\)/\1,docker-registry.default.svc:5000/" | oc apply -f -
 
 # Add Golang imagestreams to be able to build go based images
 oc import-image -n openshift golang --from=centos/go-toolset-7-centos7 --confirm
