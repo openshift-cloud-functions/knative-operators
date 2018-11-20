@@ -53,6 +53,10 @@ minishift addon install "$REPO_DIR/minishift-addons/add-ons/istio"
 until minishift addon apply istio; do sleep 1; done
 timeout 600 bash -c -- 'until oc get pods -n istio-system | grep openshift-ansible-istio-installer | grep Completed; do sleep 5; oc get pods -n istio-system; done'
 
+# Disable mTLS in istio
+oc delete MeshPolicy default
+oc delete DestinationRule default -n istio-system
+
 # OLM
 git clone https://github.com/operator-framework/operator-lifecycle-manager "$REPO_DIR/olm"
 oc create -f "$REPO_DIR/olm/deploy/okd/manifests/latest/"
