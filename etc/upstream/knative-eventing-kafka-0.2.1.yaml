@@ -1,0 +1,174 @@
+---
+apiVersion: eventing.knative.dev/v1alpha1
+kind: ClusterChannelProvisioner
+metadata:
+  name: kafka-channel
+spec: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kafka-channel-controller
+  namespace: knative-eventing
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kafka-channel-controller
+rules:
+- apiGroups:
+  - eventing.knative.dev
+  resources:
+  - channels
+  - clusterchannelprovisioners
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - services
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+- apiGroups:
+  - ""
+  resourceNames:
+  - kafka-channel-dispatcher
+  resources:
+  - configmaps
+  verbs:
+  - update
+- apiGroups:
+  - networking.istio.io
+  resources:
+  - virtualservices
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: kafka-channel-controller-manage
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kafka-channel-controller
+subjects:
+- kind: ServiceAccount
+  name: kafka-channel-controller
+  namespace: knative-eventing
+---
+apiVersion: v1
+data:
+  bootstrap_servers: my-cluster-kafka-bootstrap.myproject.svc.cluster.local:9092
+kind: ConfigMap
+metadata:
+  name: kafka-channel-controller-config
+  namespace: knative-eventing
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: kafka-channel-controller
+  namespace: knative-eventing
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: kafka-channel-controller
+    spec:
+      containers:
+      - image: gcr.io/knative-releases/github.com/knative/eventing/pkg/provisioners/kafka/cmd/controller@sha256:13b54db8c09e30319661a0c8cb750371fc5501b015cae36a9345c98f40f36e6e
+        name: kafka-channel-controller-controller
+        volumeMounts:
+        - mountPath: /etc/config-provisioner
+          name: kafka-channel-controller-config
+      serviceAccountName: kafka-channel-controller
+      volumes:
+      - configMap:
+          name: kafka-channel-controller-config
+        name: kafka-channel-controller-config
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kafka-channel-dispatcher
+  namespace: knative-eventing
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kafka-channel-dispatcher
+  namespace: knative-eventing
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: kafka-channel-dispatcher
+  namespace: knative-eventing
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kafka-channel-dispatcher
+subjects:
+- kind: ServiceAccount
+  name: kafka-channel-dispatcher
+  namespace: knative-eventing
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafka-channel-dispatcher
+  namespace: knative-eventing
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      clusterChannelProvisioner: kafka-channel
+      role: dispatcher
+  serviceName: kafka-channel-dispatcher-service
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "true"
+      labels:
+        clusterChannelProvisioner: kafka-channel
+        role: dispatcher
+    spec:
+      containers:
+      - env:
+        - name: DISPATCHER_CONFIGMAP_NAME
+          value: kafka-channel-dispatcher
+        - name: DISPATCHER_CONFIGMAP_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        image: gcr.io/knative-releases/github.com/knative/eventing/pkg/provisioners/kafka/cmd/dispatcher@sha256:ccfe7200b8661e2c2d5a6d0708dd1659440f195b82725e632305dbac715a35c1
+        name: dispatcher
+        volumeMounts:
+        - mountPath: /etc/config-provisioner
+          name: kafka-channel-controller-config
+      serviceAccountName: kafka-channel-dispatcher
+      volumes:
+      - configMap:
+          name: kafka-channel-controller-config
+        name: kafka-channel-controller-config

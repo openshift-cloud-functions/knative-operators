@@ -56,6 +56,9 @@ minishift start
 eval "$(minishift oc-env)"
 "$DIR/prep-knative.sh"
 
+# For Eventing-Kafka, we need Strimzi
+"$DIR/prep-strimzi.sh"
+
 # istio
 git clone https://github.com/minishift/minishift-addons "$REPO_DIR/minishift-addons"
 minishift addon install "$REPO_DIR/minishift-addons/add-ons/istio"
