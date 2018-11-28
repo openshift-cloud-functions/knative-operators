@@ -60,7 +60,7 @@ eval "$(minishift oc-env)"
 git clone https://github.com/minishift/minishift-addons "$REPO_DIR/minishift-addons"
 minishift addon install "$REPO_DIR/minishift-addons/add-ons/istio"
 until minishift addon apply istio; do sleep 1; done
-timeout 600 'oc get pods -n istio-system && [[ $(oc get pods -n istio-system | grep openshift-ansible-istio-installer | grep -c Completed) -eq 0 ]]'
+timeout 900 'oc get pods -n istio-system && [[ $(oc get pods -n istio-system | grep openshift-ansible-istio-installer | grep -c Completed) -eq 0 ]]'
 
 # Disable mTLS in istio
 oc delete MeshPolicy default
