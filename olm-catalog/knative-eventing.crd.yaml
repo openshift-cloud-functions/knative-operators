@@ -28,6 +28,7 @@ spec:
     - all
     - knative
     - eventing
+    - provisioner
     kind: ClusterChannelProvisioner
     plural: clusterchannelprovisioners
     shortNames:
