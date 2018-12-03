@@ -1,0 +1,115 @@
+---
+apiVersion: v1
+data:
+  default-channel-config: |
+    clusterdefault:
+      apiversion: eventing.knative.dev/v1alpha1
+      kind: ClusterChannelProvisioner
+      name: in-memory-channel
+    namespacedefaults:
+      some-namespace:
+        apiversion: eventing.knative.dev/v1alpha1
+        kind: ClusterChannelProvisioner
+        name: some-other-provisioner
+kind: ConfigMap
+metadata:
+  name: default-channel-webhook
+  namespace: knative-eventing
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    role: webhook
+  name: webhook
+spec:
+  ports:
+  - port: 443
+    targetPort: 443
+  selector:
+    role: webhook
+---
+apiVersion: v1
+data:
+  loglevel.controller: info
+  loglevel.webhook: info
+  zap-logger-config: |
+    {
+      "level": "info",
+      "development": false,
+      "outputPaths": ["stdout"],
+      "errorOutputPaths": ["stderr"],
+      "encoding": "json",
+      "encoderConfig": {
+        "timeKey": "ts",
+        "levelKey": "level",
+        "nameKey": "logger",
+        "callerKey": "caller",
+        "messageKey": "msg",
+        "stacktraceKey": "stacktrace",
+        "lineEnding": "",
+        "levelEncoder": "",
+        "timeEncoder": "iso8601",
+        "durationEncoder": "",
+        "callerEncoder": ""
+      }
+    }
+kind: ConfigMap
+metadata:
+  name: config-logging
+---
+apiVersion: eventing.knative.dev/v1alpha1
+kind: ClusterChannelProvisioner
+metadata:
+  name: in-memory-channel
+spec: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    control-plane: controller-manager
+    controller-tools.k8s.io: "1.0"
+  name: controller-manager-service
+spec:
+  ports:
+  - port: 443
+  selector:
+    control-plane: controller-manager
+    controller-tools.k8s.io: "1.0"
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    control-plane: controller-manager
+    controller-tools.k8s.io: "1.0"
+  name: controller-manager
+spec:
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+      controller-tools.k8s.io: "1.0"
+  serviceName: controller-manager-service
+  template:
+    metadata:
+      labels:
+        control-plane: controller-manager
+        controller-tools.k8s.io: "1.0"
+    spec:
+      containers:
+      - env:
+        - name: K8S_RA_IMAGE
+          value: gcr.io/knative-releases/github.com/knative/eventing-sources/cmd/kuberneteseventsource@sha256:cc6c9dffba7659d04bf5f0958a551f4eeb20d0a6ee27ab3e4102e6f1f31e0f56
+        - name: GH_RA_IMAGE
+          value: gcr.io/knative-releases/github.com/knative/eventing-sources/cmd/githubsource@sha256:beac5a4c0e17e9c409b483edffaf3f2c6c8952a7cf6966aa005288ebb265a8e0
+        image: gcr.io/knative-releases/github.com/knative/eventing-sources/cmd/manager@sha256:2fcb135069e5cad640c4ee94b988000eb874a1844174ce5ec39b110050c2d88b
+        name: manager
+        resources:
+          limits:
+            cpu: 100m
+            memory: 30Mi
+          requests:
+            cpu: 100m
+            memory: 20Mi
+      terminationGracePeriodSeconds: 10
