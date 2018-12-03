@@ -129,5 +129,13 @@ oc -n knative-serving get cm config-controller -oyaml | sed "s/\(^ *registriesSk
 oc import-image -n openshift golang --from=centos/go-toolset-7-centos7 --confirm
 oc import-image -n openshift golang:1.11 --from=centos/go-toolset-7-centos7 --confirm
 
+eval "$(minishift docker-env)"
+docker image pull centos/go-toolset-7-centos7:latest
+docker image pull vdemeester/kobw-builder:0.1.1
+for img in $(oc get image.caching.internal.knative.dev -ojsonpath='{range .items[*]}{.spec.image}{"\n"}{end}' --all-namespaces)
+do
+    docker pull $img
+done
+
 # show all the pods
 oc get pods --all-namespaces
