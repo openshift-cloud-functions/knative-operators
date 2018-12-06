@@ -48,7 +48,6 @@ minishift config set cpus 4
 minishift config set disk-size 50g
 minishift config set image-caching true
 minishift addons enable admin-user
-minishift addons enable anyuid
 
 # Start minishift
 minishift start
@@ -65,6 +64,12 @@ timeout 900 'oc get pods -n istio-system && [[ $(oc get pods -n istio-system | g
 # Disable mTLS in istio
 oc delete MeshPolicy default
 oc delete DestinationRule default -n istio-system
+
+# Scale down unused services deployed by the istio addon
+oc scale -n istio-system --replicas=0 deployment/grafana
+oc scale -n istio-system --replicas=0 deployment/jaeger-collector
+oc scale -n istio-system --replicas=0 deployment/jaeger-query
+oc scale -n istio-system --replicas=0 statefulset/elasticsearch
 
 # OLM
 git clone https://github.com/operator-framework/operator-lifecycle-manager "$REPO_DIR/olm"
