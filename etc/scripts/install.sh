@@ -43,7 +43,7 @@ minishift profile delete knative --force
 # configure knative profile
 minishift profile set knative
 minishift config set openshift-version v3.11.0
-minishift config set memory 8GB
+minishift config set memory 10GB
 minishift config set cpus 4
 minishift config set disk-size 50g
 minishift config set image-caching true
