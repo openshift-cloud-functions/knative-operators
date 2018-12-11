@@ -10,12 +10,11 @@ KNATIVE_SERVING_VERSION=v0.2.2
 KNATIVE_BUILD_VERSION=v0.2.0
 KNATIVE_EVENTING_VERSION=v0.2.0
 
-set -x
+DIR=$(cd $(dirname "$0") && pwd)
+ROOT_DIR=$DIR/../..
+REPO_DIR=$ROOT_DIR/.repos
 
-if minishift status | grep "Minishift:  Running" >/dev/null; then
-  echo "A running minishift was detected. Please stop it before running this script."
-  exit 1
-fi
+set -x
 
 # Loops until duration (car) is exceeded or command (cdr) returns non-zero
 function timeout() {
@@ -31,29 +30,12 @@ function wait_for_all_pods {
   timeout 300 "oc get pods -n $1 2>&1 | grep -v -E '(Running|Completed|STATUS)'"
 }
 
-DIR=$(cd $(dirname "$0") && pwd)
-REPO_DIR=$DIR/.repos
+# initialize the minishift knative profile
+"$DIR/init-minishift-for-knative.sh"
 
+# initialize local repos dir
 rm -rf "$REPO_DIR"
 mkdir -p "$REPO_DIR"
-
-# blow away everything first
-minishift profile delete knative --force
-
-# configure knative profile
-minishift profile set knative
-minishift config set openshift-version v3.11.0
-minishift config set memory 10GB
-minishift config set cpus 4
-minishift config set disk-size 50g
-minishift config set image-caching true
-minishift addons enable admin-user
-
-# Start minishift
-minishift start
-
-eval "$(minishift oc-env)"
-"$DIR/prep-knative.sh"
 
 # istio
 git clone https://github.com/minishift/minishift-addons "$REPO_DIR/minishift-addons"
@@ -75,9 +57,11 @@ oc scale -n istio-system --replicas=0 statefulset/elasticsearch
 git clone https://github.com/operator-framework/operator-lifecycle-manager "$REPO_DIR/olm"
 oc create -f "$REPO_DIR/olm/deploy/okd/manifests/latest/"
 wait_for_all_pods openshift-operator-lifecycle-manager
+# perms required by the OLM console: $REPO_DIR/olm/scripts/run_console_local.sh 
+oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:kube-system:default
 
 # knative catalog source
-oc apply -f "$DIR/../../knative-operators.catalogsource.yaml"
+oc apply -f "$ROOT_DIR/knative-operators.catalogsource.yaml"
 
 # for now, we must install the operators in specific namespaces, so...
 oc create ns knative-build

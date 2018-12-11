@@ -2,6 +2,28 @@
 
 set -x
 
+if minishift status | grep "Minishift:  Running" >/dev/null; then
+  echo "Please stop your running minishift to acknowledge this script will destroy it."
+  exit 1
+fi
+
+# blow away everything in the knative profile
+minishift profile delete knative --force
+
+# configure knative profile
+minishift profile set knative
+minishift config set openshift-version v3.11.0
+minishift config set memory 10GB
+minishift config set cpus 4
+minishift config set disk-size 50g
+minishift config set image-caching true
+minishift addons enable admin-user
+
+# Start minishift
+minishift start
+
+eval "$(minishift oc-env)"
+
 if ! minishift openshift config view --target=kube | grep ValidatingAdmissionWebhook >/dev/null; then
   minishift openshift config set --target=kube --patch '{
     "admissionConfig": {
@@ -28,9 +50,7 @@ fi
 # wait until the kube-apiserver is restarted
 until oc login -u admin -p admin 2>/dev/null; do sleep 5; done;
 
+# these perms are required by istio
 oc project myproject
 until oc adm policy add-scc-to-user privileged -z default; do sleep 5; done
 oc adm policy add-scc-to-user anyuid -z default
-
-# for the OLM console
-oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:kube-system:default
