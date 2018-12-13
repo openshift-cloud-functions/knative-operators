@@ -30,12 +30,12 @@ function wait_for_all_pods {
   timeout 300 "oc get pods -n $1 2>&1 | grep -v -E '(Running|Completed|STATUS)'"
 }
 
-# initialize the minishift knative profile
-"$DIR/init-minishift-for-knative.sh"
-
 # initialize local repos dir
 rm -rf "$REPO_DIR"
 mkdir -p "$REPO_DIR"
+
+# initialize the minishift knative profile
+"$DIR/init-minishift-for-knative.sh"
 
 # istio
 git clone https://github.com/minishift/minishift-addons "$REPO_DIR/minishift-addons"
@@ -55,7 +55,9 @@ oc scale -n istio-system --replicas=0 statefulset/elasticsearch
 
 # OLM
 git clone https://github.com/operator-framework/operator-lifecycle-manager "$REPO_DIR/olm"
-oc create -f "$REPO_DIR/olm/deploy/okd/manifests/latest/"
+cat $REPO_DIR/olm/deploy/okd/manifests/latest/*.crd.yaml | oc apply -f -
+sleep 1
+find $REPO_DIR/olm/deploy/okd/manifests/latest/ -type f ! -name "*crd.yaml" | sort | xargs cat | oc create -f -
 wait_for_all_pods openshift-operator-lifecycle-manager
 # perms required by the OLM console: $REPO_DIR/olm/scripts/run_console_local.sh 
 oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:kube-system:default
