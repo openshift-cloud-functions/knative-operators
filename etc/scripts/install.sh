@@ -37,22 +37,6 @@ mkdir -p "$REPO_DIR"
 # initialize the minishift knative profile
 "$DIR/init-minishift-for-knative.sh"
 
-# istio
-git clone https://github.com/minishift/minishift-addons "$REPO_DIR/minishift-addons"
-minishift addon install "$REPO_DIR/minishift-addons/add-ons/istio"
-until minishift addon apply istio; do sleep 1; done
-timeout 900 'oc get pods -n istio-system && [[ $(oc get pods -n istio-system | grep openshift-ansible-istio-installer | grep -c Completed) -eq 0 ]]'
-
-# Disable mTLS in istio
-oc delete MeshPolicy default
-oc delete DestinationRule default -n istio-system
-
-# Scale down unused services deployed by the istio addon
-oc scale -n istio-system --replicas=0 deployment/grafana
-oc scale -n istio-system --replicas=0 deployment/jaeger-collector
-oc scale -n istio-system --replicas=0 deployment/jaeger-query
-oc scale -n istio-system --replicas=0 statefulset/elasticsearch
-
 # OLM
 git clone https://github.com/operator-framework/operator-lifecycle-manager "$REPO_DIR/olm"
 cat $REPO_DIR/olm/deploy/okd/manifests/latest/*.crd.yaml | oc apply -f -
@@ -64,6 +48,44 @@ oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:kube-
 
 # knative catalog source
 oc apply -f "$ROOT_DIR/knative-operators.catalogsource.yaml"
+oc apply -f "$ROOT_DIR/maistra-operators.catalogsource.yaml"
+
+# istio
+oc create ns istio-operator
+cat <<EOF | oc apply -f -
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: maistra
+  namespace: istio-operator
+spec:
+  channel: alpha
+  name: maistra
+  source: maistra-operators
+EOF
+wait_for_all_pods istio-operator
+
+cat <<EOF | oc apply -f -
+apiVersion: istio.openshift.com/v1alpha1
+kind: Installation
+metadata:
+  namespace: istio-operator
+  name: istio-installation
+spec:
+  istio:
+    authentication: true
+    community: true
+    version: 0.2.0
+  kiali:
+    username: admin
+    password: admin
+    prefix: kiali/
+    version: v0.7.1
+EOF
+timeout 900 'oc get pods -n istio-system && [[ $(oc get pods -n istio-system | grep openshift-ansible-istio-installer | grep -c Completed) -eq 0 ]]'
+# Disable mTLS in istio
+oc delete MeshPolicy default
+oc delete DestinationRule default -n istio-system
 
 # for now, we must install the operators in specific namespaces, so...
 oc create ns knative-build
