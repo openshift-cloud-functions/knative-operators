@@ -73,7 +73,7 @@ metadata:
   name: istio-installation
 spec:
   istio:
-    authentication: true
+    authentication: false
     community: true
     version: 0.2.0
   kiali:
@@ -83,9 +83,17 @@ spec:
     version: v0.7.1
 EOF
 timeout 900 'oc get pods -n istio-system && [[ $(oc get pods -n istio-system | grep openshift-ansible-istio-installer | grep -c Completed) -eq 0 ]]'
-# Disable mTLS in istio
-oc delete MeshPolicy default
-oc delete DestinationRule default -n istio-system
+
+# Scale down unused services deployed by the istio addon. The jaeger
+# pods will fail anyway due to the elasticsearch pod failing due to
+# "max virtual memory areas vm.max_map_count [65530] is too low,
+# increase to at least [262144]" which could be mitigated on minishift
+# with:
+#  minishift ssh "echo 'echo vm.max_map_count = 262144 >/etc/sysctl.d/99-elasticsearch.conf' | sudo sh"
+oc scale -n istio-system --replicas=0 deployment/grafana
+oc scale -n istio-system --replicas=0 deployment/jaeger-collector
+oc scale -n istio-system --replicas=0 deployment/jaeger-query
+oc scale -n istio-system --replicas=0 statefulset/elasticsearch
 
 # for now, we must install the operators in specific namespaces, so...
 oc create ns knative-build
