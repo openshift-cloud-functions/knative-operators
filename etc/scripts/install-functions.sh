@@ -30,7 +30,7 @@ function install_olm {
   rm -rf "$OLM_DIR"
   git clone https://github.com/operator-framework/operator-lifecycle-manager "$OLM_DIR"
   for i in "$OLM_DIR"/deploy/okd/manifests/latest/*.crd.yaml; do oc apply -f $i; done
-  find "$OLM_DIR/deploy/okd/manifests/latest/" -type f ! -name "*crd.yaml" | sort | xargs cat | oc create -f -
+  for i in $(find "$OLM_DIR/deploy/okd/manifests/latest/" -type f ! -name "*crd.yaml" | sort); do oc create -f $i; done
   wait_for_all_pods openshift-operator-lifecycle-manager
   # perms required by the OLM console: $OLM_DIR/scripts/run_console_local.sh 
   oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:kube-system:default
