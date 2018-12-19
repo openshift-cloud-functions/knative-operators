@@ -18,7 +18,7 @@ set -x
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
-source "$DIR/install-functions.sh"
+source "$DIR/installation-functions.sh"
 
 install_olm
 install_istio
