@@ -29,8 +29,7 @@ function install_olm {
   mkdir -p "$REPO_DIR"
   rm -rf "$OLM_DIR"
   git clone https://github.com/operator-framework/operator-lifecycle-manager "$OLM_DIR"
-  cat "$OLM_DIR"/deploy/okd/manifests/latest/*.crd.yaml | oc apply -f -
-  sleep 1
+  for i in "$OLM_DIR"/deploy/okd/manifests/latest/*.crd.yaml; do oc apply -f $i; done
   find "$OLM_DIR/deploy/okd/manifests/latest/" -type f ! -name "*crd.yaml" | sort | xargs cat | oc create -f -
   wait_for_all_pods openshift-operator-lifecycle-manager
   # perms required by the OLM console: $OLM_DIR/scripts/run_console_local.sh 
@@ -54,6 +53,12 @@ function install_istio {
 	  channel: alpha
 	  name: maistra
 	  source: maistra-operators
+	---
+	apiVersion: operators.coreos.com/v1alpha2
+	kind: OperatorGroup
+	metadata:
+	  name: istio-operator
+	  namespace: istio-operator
 	EOF
   wait_for_all_pods istio-operator
 
@@ -102,6 +107,12 @@ function install_knative_build {
 	  name: knative-build
 	  startingCSV: knative-build.${KNATIVE_BUILD_VERSION}
 	  channel: alpha
+	---
+	apiVersion: operators.coreos.com/v1alpha2
+	kind: OperatorGroup
+	metadata:
+	  name: knative-build
+	  namespace: knative-build
 	EOF
 }
 
@@ -119,6 +130,12 @@ function install_knative_serving {
 	  name: knative-serving
 	  startingCSV: knative-serving.${KNATIVE_SERVING_VERSION}
 	  channel: alpha
+	---
+	apiVersion: operators.coreos.com/v1alpha2
+	kind: OperatorGroup
+	metadata:
+	  name: knative-serving
+	  namespace: knative-serving
 	EOF
 }
 
@@ -136,5 +153,11 @@ function install_knative_eventing {
 	  name: knative-eventing
 	  startingCSV: knative-eventing.${KNATIVE_EVENTING_VERSION}
 	  channel: alpha
+	---
+	apiVersion: operators.coreos.com/v1alpha2
+	kind: OperatorGroup
+	metadata:
+	  name: knative-eventing
+	  namespace: knative-eventing
 	EOF
 }
