@@ -22,7 +22,87 @@ function wait_for_all_pods {
   timeout 300 "oc get pods -n $1 2>&1 | grep -v -E '(Running|Completed|STATUS)'"
 }
 
+function check_minishift {
+  (hash minishift && oc whoami --show-server | grep "$(minishift ip)") >/dev/null 2>&1
+}
+
+function enable_admission_webhooks {
+  if check_minishift; then
+    if ! minishift openshift config view --target=kube | grep ValidatingAdmissionWebhook >/dev/null; then
+      minishift openshift config set --target=kube --patch '{
+        "admissionConfig": {
+          "pluginConfig": {
+            "ValidatingAdmissionWebhook": {
+              "configuration": {
+                "apiVersion": "apiserver.config.k8s.io/v1alpha1",
+                "kind": "WebhookAdmission",
+                "kubeConfigFile": "/dev/null"
+              }
+            },
+            "MutatingAdmissionWebhook": {
+              "configuration": {
+                "apiVersion": "apiserver.config.k8s.io/v1alpha1",
+                "kind": "WebhookAdmission",
+                "kubeConfigFile": "/dev/null"
+              }
+            }
+          }
+        }
+      }'
+      # wait until the kube-apiserver is restarted
+      until oc login -u admin -p admin 2>/dev/null; do sleep 5; done;
+    fi
+  else
+    KUBE_SSH_USER=${KUBE_SSH_USER:-cloud-user}
+    API_SERVER=$(oc config view --minify | grep server | awk -F'//' '{print $2}' | awk -F':' '{print $1}')
+
+    ssh $KUBE_SSH_USER@$API_SERVER -i $KUBE_SSH_KEY /bin/bash <<- EOF
+	sudo -i
+	cp -n /etc/origin/master/master-config.yaml /etc/origin/master/master-config.yaml.backup
+	oc ex config patch /etc/origin/master/master-config.yaml --type=merge -p '{
+	  "admissionConfig": {
+	    "pluginConfig": {
+	      "ValidatingAdmissionWebhook": {
+	        "configuration": {
+	          "apiVersion": "apiserver.config.k8s.io/v1alpha1",
+	          "kind": "WebhookAdmission",
+	          "kubeConfigFile": "/dev/null"
+	        }
+	      },
+	      "MutatingAdmissionWebhook": {
+	        "configuration": {
+	          "apiVersion": "apiserver.config.k8s.io/v1alpha1",
+	          "kind": "WebhookAdmission",
+	          "kubeConfigFile": "/dev/null"
+	        }
+	      }
+	    }
+	  }
+	}' >/etc/origin/master/master-config.yaml.patched
+	if [ $? == 0 ]; then
+	  mv /etc/origin/master/master-config.yaml.patched /etc/origin/master/master-config.yaml
+	  /usr/local/bin/master-restart api && /usr/local/bin/master-restart controllers
+	else
+	  exit
+	fi
+	EOF
+
+    if [ $? == 0 ]; then
+      # wait until the kube-apiserver is restarted
+      until oc status 2>/dev/null; do sleep 5; done
+    else
+      echo 'Remote command failed; check $KUBE_SSH_USER and/or $KUBE_SSH_KEY'
+      return -1
+    fi
+  fi
+}
+
 function install_olm {
+  # Scale down existing OLM, if any
+  if oc get ns operator-lifecycle-manager; then
+    oc scale -n operator-lifecycle-manager --replicas=0 deployment/catalog-operator
+    oc scale -n operator-lifecycle-manager --replicas=0 deployment/olm-operator
+  fi
   local ROOT_DIR="$INSTALL_SCRIPT_DIR/../.."
   local REPO_DIR="$ROOT_DIR/.repos"
   local OLM_DIR="$REPO_DIR/olm"

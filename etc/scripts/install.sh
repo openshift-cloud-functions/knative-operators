@@ -5,9 +5,9 @@
 if [ "$1" != "-q" ]; then
   echo
   echo "  WARNING: This script will blindly attempt to install OLM, istio, and knative"
-  echo "  on your OKD cluster, so if any are already there, hijinks will ensue."
+  echo "  on your OpenShift cluster, so if any are already there, hijinks may ensue."
   echo
-  echo "  If your cluster is minishift, run $(dirname $0)/install-on-minishift.sh instead."
+  echo "  If your cluster isn't minishift, ensure \$KUBE_SSH_KEY and \$KUBE_SSH_USER are set"
   echo
   echo "  Pass -q to disable this warning"
   echo
@@ -20,6 +20,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
 source "$DIR/installation-functions.sh"
 
+enable_admission_webhooks
 install_olm
 install_istio
 install_knative_build

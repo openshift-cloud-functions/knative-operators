@@ -28,31 +28,7 @@ minishift start
 
 eval "$(minishift oc-env)"
 
-if ! minishift openshift config view --target=kube | grep ValidatingAdmissionWebhook >/dev/null; then
-  minishift openshift config set --target=kube --patch '{
-    "admissionConfig": {
-        "pluginConfig": {
-            "ValidatingAdmissionWebhook": {
-                "configuration": {
-                    "apiVersion": "apiserver.config.k8s.io/v1alpha1",
-                    "kind": "WebhookAdmission",
-                    "kubeConfigFile": "/dev/null"
-                }
-            },
-            "MutatingAdmissionWebhook": {
-                "configuration": {
-                    "apiVersion": "apiserver.config.k8s.io/v1alpha1",
-                    "kind": "WebhookAdmission",
-                    "kubeConfigFile": "/dev/null"
-                }
-            }
-        }
-    }
-}'
-fi
-
-# wait until the kube-apiserver is restarted
-until oc login -u admin -p admin 2>/dev/null; do sleep 5; done;
+oc login -u admin -p admin
 
 # these perms are required by istio
 oc project myproject
