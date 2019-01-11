@@ -2,9 +2,12 @@
 
 # This is a function library, expected to be source'd
 
+# These are the versions in the OLM Subscriptions, but they will be
+# updated to the currentCSV version in the corresponding package in
+# the catalog source.
 KNATIVE_SERVING_VERSION=v0.2.2
 KNATIVE_BUILD_VERSION=v0.2.0
-KNATIVE_EVENTING_VERSION=v0.2.0
+KNATIVE_EVENTING_VERSION=v0.2.1
 
 INSTALL_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
