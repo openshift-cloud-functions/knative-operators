@@ -215,7 +215,7 @@ spec:
               initContainers:
               - name: olm-hack
                 image: lachlanevenson/k8s-kubectl
-                args: ['apply', '-f', 'https://raw.githubusercontent.com/openshift-cloud-functions/knative-operators/master/etc/hacks/knative-serving-0.2.2.yaml']
+                args: ['apply', '-f', 'https://raw.githubusercontent.com/openshift-cloud-functions/knative-operators/0ec10b1/etc/hacks/knative-serving-0.2.2.yaml']
               serviceAccountName: controller
               volumes:
               - configMap:
