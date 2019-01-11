@@ -30,10 +30,5 @@ eval "$(minishift oc-env)"
 
 oc login -u admin -p admin
 
-# these perms are required by istio
-oc project myproject
-until oc adm policy add-scc-to-user privileged -z default; do sleep 5; done
-oc adm policy add-scc-to-user anyuid -z default
-
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 "$DIR/install.sh" -q

@@ -38,5 +38,12 @@ oc -n knative-serving get cm config-controller -oyaml | sed "s/\(^ *registriesSk
 oc import-image -n openshift golang --from=centos/go-toolset-7-centos7 --confirm
 oc import-image -n openshift golang:1.11 --from=centos/go-toolset-7-centos7 --confirm
 
+# these perms are required by istio
+if ! oc project myproject 2>/dev/null; then
+  oc new-project myproject
+fi
+oc adm policy add-scc-to-user privileged -z default
+oc adm policy add-scc-to-user anyuid -z default
+
 # show all the pods
 oc get pods --all-namespaces
