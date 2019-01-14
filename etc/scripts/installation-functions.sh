@@ -101,26 +101,31 @@ function enable_admission_webhooks {
 }
 
 function install_olm {
-  # Scale down existing OLM, if any
-  if oc get ns operator-lifecycle-manager; then
-    oc scale -n operator-lifecycle-manager --replicas=0 deployment/catalog-operator
-    oc scale -n operator-lifecycle-manager --replicas=0 deployment/olm-operator
-  fi
   local ROOT_DIR="$INSTALL_SCRIPT_DIR/../.."
-  local REPO_DIR="$ROOT_DIR/.repos"
-  local OLM_DIR="$REPO_DIR/olm"
-  mkdir -p "$REPO_DIR"
-  rm -rf "$OLM_DIR"
-  git clone https://github.com/operator-framework/operator-lifecycle-manager "$OLM_DIR"
-  pushd $OLM_DIR; git checkout eaf605cca864e; popd
-  for i in "$OLM_DIR"/deploy/okd/manifests/latest/*.crd.yaml; do oc apply -f $i; done
-  for i in $(find "$OLM_DIR/deploy/okd/manifests/latest/" -type f ! -name "*crd.yaml" | sort); do oc create -f $i; done
-  wait_for_all_pods openshift-operator-lifecycle-manager
-  # perms required by the OLM console: $OLM_DIR/scripts/run_console_local.sh 
-  oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:kube-system:default
-
-  # knative catalog source
-  local OLM_NS=$(grep "catalog_namespace:" "$OLM_DIR/deploy/okd/values.yaml" | awk '{print $2}')
+  local OLM_NS="operator-lifecycle-manager"
+  if oc get ns "$OLM_NS"; then
+    # we'll assume this is v3.11.0, which doesn't support
+    # OperatorGroups, or ClusterRoles in the CSV, so...
+    oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:istio-operator:istio-operator
+    oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:knative-build:build-controller
+    oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:knative-serving:controller
+    oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:knative-eventing:default
+  else
+    local REPO_DIR="$ROOT_DIR/.repos"
+    local OLM_DIR="$REPO_DIR/olm"
+    mkdir -p "$REPO_DIR"
+    rm -rf "$OLM_DIR"
+    git clone https://github.com/operator-framework/operator-lifecycle-manager "$OLM_DIR"
+    pushd $OLM_DIR; git checkout eaf605cca864e; popd
+    for i in "$OLM_DIR"/deploy/okd/manifests/latest/*.crd.yaml; do oc apply -f $i; done
+    for i in $(find "$OLM_DIR/deploy/okd/manifests/latest/" -type f ! -name "*crd.yaml" | sort); do oc create -f $i; done
+    wait_for_all_pods openshift-operator-lifecycle-manager
+    # perms required by the OLM console: $OLM_DIR/scripts/run_console_local.sh
+    oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:kube-system:default
+    # check our namespace
+    OLM_NS=$(grep "catalog_namespace:" "$OLM_DIR/deploy/okd/values.yaml" | awk '{print $2}')
+  fi
+  # and finally apply the catalog sources
   oc apply -f "$ROOT_DIR/knative-operators.catalogsource.yaml" -n "$OLM_NS"
   oc apply -f "$ROOT_DIR/maistra-operators.catalogsource.yaml" -n "$OLM_NS"
 }
@@ -138,12 +143,6 @@ function install_istio {
 	  channel: alpha
 	  name: maistra
 	  source: maistra-operators
-	---
-	apiVersion: operators.coreos.com/v1alpha2
-	kind: OperatorGroup
-	metadata:
-	  name: istio-operator
-	  namespace: istio-operator
 	EOF
   wait_for_all_pods istio-operator
 
@@ -192,12 +191,6 @@ function install_knative_build {
 	  name: knative-build
 	  startingCSV: knative-build.${KNATIVE_BUILD_VERSION}
 	  channel: alpha
-	---
-	apiVersion: operators.coreos.com/v1alpha2
-	kind: OperatorGroup
-	metadata:
-	  name: knative-build
-	  namespace: knative-build
 	EOF
 }
 
@@ -215,12 +208,6 @@ function install_knative_serving {
 	  name: knative-serving
 	  startingCSV: knative-serving.${KNATIVE_SERVING_VERSION}
 	  channel: alpha
-	---
-	apiVersion: operators.coreos.com/v1alpha2
-	kind: OperatorGroup
-	metadata:
-	  name: knative-serving
-	  namespace: knative-serving
 	EOF
 }
 
@@ -238,6 +225,29 @@ function install_knative_eventing {
 	  name: knative-eventing
 	  startingCSV: knative-eventing.${KNATIVE_EVENTING_VERSION}
 	  channel: alpha
+	EOF
+}
+
+function install_operator_groups {
+  if oc get crd operatorgroups.operators.coreos.com 2>/dev/null; then
+    cat <<-EOF | oc apply -f -
+	apiVersion: operators.coreos.com/v1alpha2
+	kind: OperatorGroup
+	metadata:
+	  name: istio-operator
+	  namespace: istio-operator
+	---
+	apiVersion: operators.coreos.com/v1alpha2
+	kind: OperatorGroup
+	metadata:
+	  name: knative-build
+	  namespace: knative-build
+	---
+	apiVersion: operators.coreos.com/v1alpha2
+	kind: OperatorGroup
+	metadata:
+	  name: knative-serving
+	  namespace: knative-serving
 	---
 	apiVersion: operators.coreos.com/v1alpha2
 	kind: OperatorGroup
@@ -245,4 +255,5 @@ function install_knative_eventing {
 	  name: knative-eventing
 	  namespace: knative-eventing
 	EOF
+  fi
 }

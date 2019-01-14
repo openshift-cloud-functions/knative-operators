@@ -26,6 +26,7 @@ install_istio
 install_knative_build
 install_knative_serving
 install_knative_eventing
+install_operator_groups
 
 wait_for_all_pods knative-build
 wait_for_all_pods knative-eventing
