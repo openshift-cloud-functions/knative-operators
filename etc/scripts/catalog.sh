@@ -3,7 +3,6 @@
 DIR=$(cd $(dirname "$0")/../../olm-catalog && pwd)
 
 NAME="knative-operators"
-NAMESPACE="openshift-operator-lifecycle-manager"
 NAMEDISPLAY="Knative Operators"
 
 indent() {
@@ -20,7 +19,6 @@ kind: ConfigMap
 apiVersion: v1
 metadata:
   name: $NAME
-  namespace: $NAMESPACE
 
 data:
   customResourceDefinitions: |-
@@ -34,7 +32,6 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
   name: $NAME
-  namespace: $NAMESPACE
 spec:
   configMap: $NAME
   displayName: $NAMEDISPLAY

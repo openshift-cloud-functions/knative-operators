@@ -2,7 +2,6 @@ kind: ConfigMap
 apiVersion: v1
 metadata:
   name: knative-operators
-  namespace: openshift-operator-lifecycle-manager
 
 data:
   customResourceDefinitions: |-
@@ -2651,7 +2650,6 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
   name: knative-operators
-  namespace: openshift-operator-lifecycle-manager
 spec:
   configMap: knative-operators
   displayName: Knative Operators
