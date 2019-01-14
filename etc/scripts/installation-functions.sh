@@ -112,6 +112,7 @@ function install_olm {
   mkdir -p "$REPO_DIR"
   rm -rf "$OLM_DIR"
   git clone https://github.com/operator-framework/operator-lifecycle-manager "$OLM_DIR"
+  pushd $OLM_DIR; git checkout eaf605cca864e; popd
   for i in "$OLM_DIR"/deploy/okd/manifests/latest/*.crd.yaml; do oc apply -f $i; done
   for i in $(find "$OLM_DIR/deploy/okd/manifests/latest/" -type f ! -name "*crd.yaml" | sort); do oc create -f $i; done
   wait_for_all_pods openshift-operator-lifecycle-manager
