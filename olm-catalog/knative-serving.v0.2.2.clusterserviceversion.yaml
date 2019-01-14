@@ -10,6 +10,16 @@ spec:
   maturity: alpha
   replaces: knative-serving.v0.2.1
   
+  installModes:
+  - supported: true
+    type: OwnNamespace
+  - supported: true
+    type: SingleNamespace
+  - supported: true
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+
   install:
     strategy: deployment
     spec:

@@ -119,8 +119,9 @@ function install_olm {
   oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:kube-system:default
 
   # knative catalog source
-  oc apply -f "$ROOT_DIR/knative-operators.catalogsource.yaml"
-  oc apply -f "$ROOT_DIR/maistra-operators.catalogsource.yaml"
+  local OLM_NS=$(grep "catalog_namespace:" "$OLM_DIR/deploy/okd/values.yaml" | awk '{print $2}')
+  oc apply -f "$ROOT_DIR/knative-operators.catalogsource.yaml" -n "$OLM_NS"
+  oc apply -f "$ROOT_DIR/maistra-operators.catalogsource.yaml" -n "$OLM_NS"
 }
 
 function install_istio {

@@ -2,7 +2,6 @@ kind: ConfigMap
 apiVersion: v1
 metadata:
   name: maistra-operators
-  namespace: openshift-operator-lifecycle-manager
 
 data:
   customResourceDefinitions: |-
@@ -36,6 +35,15 @@ data:
         links:
         - name: Documentation
           url: https://maistra.io
+        installModes:
+        - supported: true
+          type: OwnNamespace
+        - supported: true
+          type: SingleNamespace
+        - supported: true
+          type: MultiNamespace
+        - supported: true
+          type: AllNamespaces
         install:
           strategy: deployment
           spec:
@@ -135,7 +143,6 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
   name: maistra-operators
-  namespace:  openshift-operator-lifecycle-manager
 spec:
   sourceType: internal
   configMap: maistra-operators
