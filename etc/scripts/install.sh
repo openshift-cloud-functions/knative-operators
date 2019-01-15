@@ -7,7 +7,8 @@ if [ "$1" != "-q" ]; then
   echo "  WARNING: This script will blindly attempt to install OLM, istio, and knative"
   echo "  on your OpenShift cluster, so if any are already there, hijinks may ensue."
   echo
-  echo "  If your cluster isn't minishift, ensure \$KUBE_SSH_KEY and \$KUBE_SSH_USER are set"
+  echo "  If your cluster isn't minishift and it doesn't have AdmissionWebhooks enabled"
+  echo "  ensure \$KUBE_SSH_KEY and \$KUBE_SSH_USER are set"
   echo
   echo "  Pass -q to disable this warning"
   echo
@@ -20,7 +21,11 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
 source "$DIR/installation-functions.sh"
 
-enable_admission_webhooks
+if ! has_admissionapis; then
+  enable_admission_webhooks
+fi
+
+exit 0
 install_olm
 install_istio
 install_knative_build

@@ -29,6 +29,10 @@ function check_minishift {
   (hash minishift && oc whoami --show-server | grep "$(minishift ip)") >/dev/null 2>&1
 }
 
+function has_admissionapis {
+	(oc api-versions | grep admissionregistration) > /dev/null 2>&1
+}
+
 function enable_admission_webhooks {
   if check_minishift; then
     if ! minishift openshift config view --target=kube | grep ValidatingAdmissionWebhook >/dev/null; then
