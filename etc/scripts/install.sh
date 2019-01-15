@@ -25,7 +25,6 @@ if ! has_admissionapis; then
   enable_admission_webhooks
 fi
 
-exit 0
 install_olm
 install_istio
 install_knative_build
