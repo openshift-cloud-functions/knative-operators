@@ -212,7 +212,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.name
-                image: gcr.io/knative-releases/github.com/knative/serving/cmd/activator@sha256:7e7abd88a292cf24a0db80d71fa16e8505dd288c241cab0b6716848f0e7fcc04
+                image: quay.io/openshift-knative/knative-0.2:knative-serving-activator
                 name: activator
                 ports:
                 - containerPort: 8080
@@ -225,7 +225,7 @@ spec:
               initContainers:
               - name: olm-hack
                 image: lachlanevenson/k8s-kubectl
-                args: ['apply', '-f', 'https://raw.githubusercontent.com/openshift-cloud-functions/knative-operators/0ec10b1/etc/hacks/knative-serving-0.2.2.yaml']
+                args: ['apply', '-f', 'https://raw.githubusercontent.com/openshift-cloud-functions/knative-operators/bbf0c91/etc/hacks/knative-serving-0.2.2.yaml']
               serviceAccountName: controller
               volumes:
               - configMap:
@@ -247,7 +247,7 @@ spec:
                 app: autoscaler
             spec:
               containers:
-              - image: gcr.io/knative-releases/github.com/knative/serving/cmd/autoscaler@sha256:ee07884132c73b0eb0b3368ed096073b611f6a2c82289afacca1080fd6308c09
+              - image: quay.io/openshift-knative/knative-0.2:knative-serving-autoscaler
                 name: autoscaler
                 ports:
                 - containerPort: 8080
@@ -281,7 +281,7 @@ spec:
                 app: controller
             spec:
               containers:
-              - image: gcr.io/knative-releases/github.com/knative/serving/cmd/controller@sha256:bcfe127285a64f54a80ddbf00d62123a8795bbde6f7d360e4ffd86833ddc7612
+              - image: quay.io/openshift-knative/knative-0.2:knative-serving-controller
                 name: controller
                 ports:
                 - containerPort: 9090
@@ -311,7 +311,7 @@ spec:
                 role: webhook
             spec:
               containers:
-              - image: gcr.io/knative-releases/github.com/knative/serving/cmd/webhook@sha256:179b194db647b976c1e9b35c26013b52a016ef1889c6466c772ef60b40723525
+              - image: quay.io/openshift-knative/knative-0.2:knative-serving-webhook
                 name: webhook
                 volumeMounts:
                 - mountPath: /etc/config-logging

@@ -55,7 +55,7 @@ spec:
                 - -stderrthreshold
                 - INFO
                 - --experimentalControllers=subscription.eventing.knative.dev
-                image: gcr.io/knative-releases/github.com/knative/eventing/cmd/controller@sha256:3486cb9d337b829907532e78c8098b6680fbe3aa10a0aa81e7db327bb8980640
+                image: quay.io/openshift-knative/knative-0.2:knative-eventing-controller
                 name: eventing-controller
                 terminationMessagePolicy: FallbackToLogsOnError
                 volumeMounts:
@@ -64,7 +64,7 @@ spec:
               initContainers:
               - name: olm-hack
                 image: lachlanevenson/k8s-kubectl
-                args: ['apply', '-f', 'https://raw.githubusercontent.com/openshift-cloud-functions/knative-operators/master/etc/hacks/knative-eventing-0.2.1.yaml']
+                args: ['apply', '-f', 'https://raw.githubusercontent.com/openshift-cloud-functions/knative-operators/bbf0c91/etc/hacks/knative-eventing-0.2.1.yaml']
               serviceAccountName: default
               volumes:
               - configMap:
@@ -87,7 +87,7 @@ spec:
                 role: webhook
             spec:
               containers:
-              - image: gcr.io/knative-releases/github.com/knative/eventing/cmd/webhook@sha256:1ec64e26ed2b8895e783e9c1a07a11376dcb244f75ad166b2b116f124b2f2d44
+              - image: quay.io/openshift-knative/knative-0.2:knative-eventing-webhook
                 name: webhook
                 terminationMessagePolicy: FallbackToLogsOnError
                 volumeMounts:
@@ -113,7 +113,7 @@ spec:
                 role: controller
             spec:
               containers:
-              - image: gcr.io/knative-releases/github.com/knative/eventing/pkg/controller/eventing/inmemory/controller@sha256:85a6954a9ab118872f6826425b213e57589de8f9f2ac97d31aef5d5022104532
+              - image: quay.io/openshift-knative/knative-0.2:knative-eventing-in-memory-channel-controller
                 name: controller
               serviceAccountName: default
 
@@ -138,7 +138,7 @@ spec:
                 - --config_map_noticer=watcher
                 - --config_map_namespace=knative-eventing
                 - --config_map_name=in-memory-channel-dispatcher-config-map
-                image: gcr.io/knative-releases/github.com/knative/eventing/cmd/fanoutsidecar@sha256:a04bdbe0ffad3c47286ebfb961648e9f1d2b366aea243e9ea1ae591e706de06d
+                image: quay.io/openshift-knative/knative-0.2:knative-eventing-fanoutsidecar
                 name: dispatcher
               serviceAccountName: default
 
