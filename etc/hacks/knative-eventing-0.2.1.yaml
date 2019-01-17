@@ -100,10 +100,10 @@ spec:
       containers:
       - env:
         - name: K8S_RA_IMAGE
-          value: gcr.io/knative-releases/github.com/knative/eventing-sources/cmd/kuberneteseventsource@sha256:cc6c9dffba7659d04bf5f0958a551f4eeb20d0a6ee27ab3e4102e6f1f31e0f56
+          value: quay.io/openshift-knative/knative-0.2:knative-eventing-sources-kuberneteseventsource
         - name: GH_RA_IMAGE
-          value: gcr.io/knative-releases/github.com/knative/eventing-sources/cmd/githubsource@sha256:beac5a4c0e17e9c409b483edffaf3f2c6c8952a7cf6966aa005288ebb265a8e0
-        image: gcr.io/knative-releases/github.com/knative/eventing-sources/cmd/manager@sha256:2fcb135069e5cad640c4ee94b988000eb874a1844174ce5ec39b110050c2d88b
+          value: quay.io/openshift-knative/knative-0.2:knative-eventing-sources-githubsource
+        image: quay.io/openshift-knative/knative-0.2:knative-eventing-sources-manager
         name: manager
         resources:
           limits:
