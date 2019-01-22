@@ -29,9 +29,17 @@ function check_minishift {
   (hash minishift && oc whoami --show-server | grep "$(minishift ip)") >/dev/null 2>&1
 }
 
+function check_openshift_4 {
+  oc api-resources | grep machineconfigs | grep machineconfiguration.openshift.io > /dev/null 2>&1
+}
+
 function enable_admission_webhooks {
-  if check_minishift; then
+  if check_openshift_4; then
+    echo "Detected OpenShift 4 - skipping enabling admission webhooks."
+  elif check_minishift; then
+    echo "Detected minishift - checking if admission webhooks are enabled."
     if ! minishift openshift config view --target=kube | grep ValidatingAdmissionWebhook >/dev/null; then
+      echo "Admission webhooks are not enabled - enabling now."
       minishift openshift config set --target=kube --patch '{
         "admissionConfig": {
           "pluginConfig": {
@@ -54,8 +62,11 @@ function enable_admission_webhooks {
       }'
       # wait until the kube-apiserver is restarted
       until oc login -u admin -p admin 2>/dev/null; do sleep 5; done;
+    else
+      echo "Admission webhooks are already enabled."
     fi
   else
+    echo "Attempting to enable admission webhooks via SSH."
     KUBE_SSH_USER=${KUBE_SSH_USER:-cloud-user}
     API_SERVER=$(oc config view --minify | grep server | awk -F'//' '{print $2}' | awk -F':' '{print $1}')
 
@@ -103,7 +114,11 @@ function enable_admission_webhooks {
 function install_olm {
   local ROOT_DIR="$INSTALL_SCRIPT_DIR/../.."
   local OLM_NS="operator-lifecycle-manager"
-  if oc get ns "$OLM_NS"; then
+  if check_openshift_4; then
+    echo "Detected OpenShift 4 - skipping OLM installation."
+    OLM_NS="openshift-operator-lifecycle-manager"
+  elif oc get ns "$OLM_NS"; then
+    echo "Detected OpenShift 3 with OLM already installed."
     # we'll assume this is v3.11.0, which doesn't support
     # OperatorGroups, or ClusterRoles in the CSV, so...
     oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:istio-operator:istio-operator
@@ -128,11 +143,16 @@ function install_olm {
   # and finally apply the catalog sources
   oc apply -f "$ROOT_DIR/knative-operators.catalogsource.yaml" -n "$OLM_NS"
   oc apply -f "$ROOT_DIR/maistra-operators.catalogsource.yaml" -n "$OLM_NS"
+
+  # These namespaces need to exist before creating OperatorGroups
+  oc create ns istio-operator
+  oc create ns knative-build
+  oc create ns knative-serving
+  oc create ns knative-eventing
 }
 
 function install_istio {
   # istio
-  oc create ns istio-operator
   cat <<-EOF | oc apply -f -
 	apiVersion: operators.coreos.com/v1alpha1
 	kind: Subscription
@@ -178,7 +198,6 @@ function install_istio {
 }
 
 function install_knative_build {
-  oc create ns knative-build
   cat <<-EOF | oc apply -f -
 	apiVersion: operators.coreos.com/v1alpha1
 	kind: Subscription
@@ -195,7 +214,6 @@ function install_knative_build {
 }
 
 function install_knative_serving {
-  oc create ns knative-serving
   cat <<-EOF | oc apply -f -
 	apiVersion: operators.coreos.com/v1alpha1
 	kind: Subscription
@@ -212,7 +230,6 @@ function install_knative_serving {
 }
 
 function install_knative_eventing {
-  oc create ns knative-eventing
   cat <<-EOF | oc apply -f -
 	apiVersion: operators.coreos.com/v1alpha1
 	kind: Subscription

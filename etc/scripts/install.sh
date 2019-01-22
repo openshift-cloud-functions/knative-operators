@@ -7,7 +7,8 @@ if [ "$1" != "-q" ]; then
   echo "  WARNING: This script will blindly attempt to install OLM, istio, and knative"
   echo "  on your OpenShift cluster, so if any are already there, hijinks may ensue."
   echo
-  echo "  If your cluster isn't minishift, ensure \$KUBE_SSH_KEY and \$KUBE_SSH_USER are set"
+  echo "  If using OpenShift 3.11 and your cluster isn't minishift, ensure"
+  echo "  \$KUBE_SSH_KEY and \$KUBE_SSH_USER are set"
   echo
   echo "  Pass -q to disable this warning"
   echo
@@ -22,18 +23,20 @@ source "$DIR/installation-functions.sh"
 
 enable_admission_webhooks
 install_olm
+install_operator_groups
 install_istio
 install_knative_build
 install_knative_serving
 install_knative_eventing
-install_operator_groups
 
 wait_for_all_pods knative-build
 wait_for_all_pods knative-eventing
 wait_for_all_pods knative-serving
 
 # skip tag resolving for internal registry
-oc -n knative-serving get cm config-controller -oyaml | sed "s/\(^ *registriesSkippingTagResolving.*$\)/\1,docker-registry.default.svc:5000/" | oc apply -f -
+# OpenShift 3 and 4 place the registry in different locations, hence
+# the two hostnames here
+oc -n knative-serving get cm config-controller -oyaml | sed "s/\(^ *registriesSkippingTagResolving.*$\)/\1,docker-registry.default.svc:5000,image-registry.openshift-image-registry.svc:5000/" | oc apply -f -
 
 # Add Golang imagestreams to be able to build go based images
 oc import-image -n openshift golang --from=centos/go-toolset-7-centos7 --confirm

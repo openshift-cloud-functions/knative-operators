@@ -756,6 +756,9 @@ data:
       kind: ClusterServiceVersion
       metadata:
         name: knative-build.v0.2.0
+        annotations:
+          olm.operatorGroup: knative-build
+          olm.operatorNamespace: knative-build
       spec:
         displayName: Knative Build
         description: |
@@ -1140,6 +1143,9 @@ data:
       kind: ClusterServiceVersion
       metadata:
         name: knative-eventing.v0.2.1
+        annotations:
+          olm.operatorGroup: knative-eventing
+          olm.operatorNamespace: knative-eventing
       spec:
         displayName: Knative Eventing
         description: |
@@ -2256,11 +2262,6 @@ data:
               description: "Automatically manages the whole lifecycle of your workload. It controls the creation of other objects to ensure that your app has a route, a configuration, and a new revision for each update of the service. Service can be defined to always route traffic to the latest revision or to a pinned revision."
               displayName: Knative Service
               version: v1alpha1
-            - description: A cached build image?
-              displayName: Image
-              kind: Image
-              name: images.caching.internal.knative.dev
-              version: v1alpha1
             - description: A cluster ingress?
               displayName: Cluster Ingress
               kind: ClusterIngress
@@ -2275,6 +2276,9 @@ data:
       kind: ClusterServiceVersion
       metadata:
         name: knative-serving.v0.2.2
+        annotations:
+          olm.operatorGroup: knative-serving
+          olm.operatorNamespace: knative-serving
       spec:
         displayName: Knative Serving
         description: |
