@@ -23,7 +23,6 @@ source "$DIR/installation-functions.sh"
 
 enable_admission_webhooks
 install_olm
-install_operator_groups
 install_istio
 install_knative_build
 install_knative_serving
