@@ -29,9 +29,21 @@ function check_minishift {
   (hash minishift && oc whoami --show-server | grep "$(minishift ip)") >/dev/null 2>&1
 }
 
+function check_openshift_4 {
+  oc api-resources | grep machineconfigs | grep machineconfiguration.openshift.io > /dev/null 2>&1
+}
+
+function check_operatorgroups {
+  oc get crd operatorgroups.operators.coreos.com >/dev/null 2>&1
+}
+
 function enable_admission_webhooks {
-  if check_minishift; then
+  if check_openshift_4; then
+    echo "Detected OpenShift 4 - skipping enabling admission webhooks."
+  elif check_minishift; then
+    echo "Detected minishift - checking if admission webhooks are enabled."
     if ! minishift openshift config view --target=kube | grep ValidatingAdmissionWebhook >/dev/null; then
+      echo "Admission webhooks are not enabled - enabling now."
       minishift openshift config set --target=kube --patch '{
         "admissionConfig": {
           "pluginConfig": {
@@ -54,8 +66,11 @@ function enable_admission_webhooks {
       }'
       # wait until the kube-apiserver is restarted
       until oc login -u admin -p admin 2>/dev/null; do sleep 5; done;
+    else
+      echo "Admission webhooks are already enabled."
     fi
   else
+    echo "Attempting to enable admission webhooks via SSH."
     KUBE_SSH_USER=${KUBE_SSH_USER:-cloud-user}
     API_SERVER=$(oc config view --minify | grep server | awk -F'//' '{print $2}' | awk -F':' '{print $1}')
 
@@ -103,7 +118,11 @@ function enable_admission_webhooks {
 function install_olm {
   local ROOT_DIR="$INSTALL_SCRIPT_DIR/../.."
   local OLM_NS="operator-lifecycle-manager"
-  if oc get ns "$OLM_NS"; then
+  if check_openshift_4; then
+    echo "Detected OpenShift 4 - skipping OLM installation."
+    OLM_NS="openshift-operator-lifecycle-manager"
+  elif oc get ns "$OLM_NS"; then
+    echo "Detected OpenShift 3 with OLM already installed."
     # we'll assume this is v3.11.0, which doesn't support
     # OperatorGroups, or ClusterRoles in the CSV, so...
     oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:istio-operator:istio-operator
@@ -144,6 +163,15 @@ function install_istio {
 	  name: maistra
 	  source: maistra-operators
 	EOF
+  if check_operatorgroups; then
+    cat <<-EOF | oc apply -f -
+	apiVersion: operators.coreos.com/v1alpha2
+	kind: OperatorGroup
+	metadata:
+	  name: istio-operator
+	  namespace: istio-operator
+	EOF
+  fi
   wait_for_all_pods istio-operator
 
   cat <<-EOF | oc apply -f -
@@ -192,6 +220,15 @@ function install_knative_build {
 	  startingCSV: knative-build.${KNATIVE_BUILD_VERSION}
 	  channel: alpha
 	EOF
+  if check_operatorgroups; then
+    cat <<-EOF | oc apply -f -
+	apiVersion: operators.coreos.com/v1alpha2
+	kind: OperatorGroup
+	metadata:
+	  name: knative-build
+	  namespace: knative-build
+	EOF
+  fi
 }
 
 function install_knative_serving {
@@ -209,6 +246,15 @@ function install_knative_serving {
 	  startingCSV: knative-serving.${KNATIVE_SERVING_VERSION}
 	  channel: alpha
 	EOF
+  if check_operatorgroups; then
+    cat <<-EOF | oc apply -f -
+	apiVersion: operators.coreos.com/v1alpha2
+	kind: OperatorGroup
+	metadata:
+	  name: knative-serving
+	  namespace: knative-serving
+	EOF
+  fi
 }
 
 function install_knative_eventing {
@@ -226,29 +272,8 @@ function install_knative_eventing {
 	  startingCSV: knative-eventing.${KNATIVE_EVENTING_VERSION}
 	  channel: alpha
 	EOF
-}
-
-function install_operator_groups {
-  if oc get crd operatorgroups.operators.coreos.com 2>/dev/null; then
+  if check_operatorgroups; then
     cat <<-EOF | oc apply -f -
-	apiVersion: operators.coreos.com/v1alpha2
-	kind: OperatorGroup
-	metadata:
-	  name: istio-operator
-	  namespace: istio-operator
-	---
-	apiVersion: operators.coreos.com/v1alpha2
-	kind: OperatorGroup
-	metadata:
-	  name: knative-build
-	  namespace: knative-build
-	---
-	apiVersion: operators.coreos.com/v1alpha2
-	kind: OperatorGroup
-	metadata:
-	  name: knative-serving
-	  namespace: knative-serving
-	---
 	apiVersion: operators.coreos.com/v1alpha2
 	kind: OperatorGroup
 	metadata:
