@@ -2,9 +2,6 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
   name: knative-eventing.v0.2.1
-  annotations:
-    olm.operatorGroup: knative-eventing
-    olm.operatorNamespace: knative-eventing
 spec:
   displayName: Knative Eventing
   description: |
@@ -18,9 +15,9 @@ spec:
     type: OwnNamespace
   - supported: true
     type: SingleNamespace
-  - supported: true
+  - supported: false
     type: MultiNamespace
-  - supported: true
+  - supported: false
     type: AllNamespaces
 
   install:

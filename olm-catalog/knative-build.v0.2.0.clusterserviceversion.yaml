@@ -2,9 +2,6 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
   name: knative-build.v0.2.0
-  annotations:
-    olm.operatorGroup: knative-build
-    olm.operatorNamespace: knative-build
 spec:
   displayName: Knative Build
   description: |
@@ -18,9 +15,9 @@ spec:
     type: OwnNamespace
   - supported: true
     type: SingleNamespace
-  - supported: true
+  - supported: false
     type: MultiNamespace
-  - supported: true
+  - supported: false
     type: AllNamespaces
 
   install:
@@ -205,6 +202,27 @@ spec:
         kind: Build
         name: builds.build.knative.dev
         version: v1alpha1
+        statusDescriptors:
+          - description: The Pod this Build ran on
+            displayName: Build Pod
+            path: cluster.podName
+            x-descriptors:
+              - 'urn:alm:descriptor:io.kubernetes:Pod'
+          - description: The start time of the Build
+            displayName: Start Time
+            path: startTime
+            x-descriptors:
+              - 'urn:alm:descriptor:text'
+          - description: The completion time of the Build
+            displayName: Completion Time
+            path: completionTime
+            x-descriptors:
+              - 'urn:alm:descriptor:text'
+          - description: The conditions of this Build
+            displayName: Conditions
+            path: conditions
+            x-descriptors:
+              - 'urn:alm:descriptor:io.kubernetes.conditions'
       - description: Encapsulates a configurable, reusable build process
         displayName: Build Template
         kind: BuildTemplate
