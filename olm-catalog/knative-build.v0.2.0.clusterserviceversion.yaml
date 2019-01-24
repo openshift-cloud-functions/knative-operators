@@ -2,6 +2,9 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
   name: knative-build.v0.2.0
+  annotations:
+    olm.operatorGroup: knative-build
+    olm.operatorNamespace: knative-build
 spec:
   displayName: Knative Build
   description: |
@@ -211,9 +214,4 @@ spec:
         displayName: Cluster Build Template
         kind: ClusterBuildTemplate
         name: clusterbuildtemplates.build.knative.dev
-        version: v1alpha1
-      - description: A cached build image?
-        displayName: Image
-        kind: Image
-        name: images.caching.internal.knative.dev
         version: v1alpha1

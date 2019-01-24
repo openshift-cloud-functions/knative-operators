@@ -2,6 +2,9 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
   name: knative-serving.v0.2.2
+  annotations:
+    olm.operatorGroup: knative-serving
+    olm.operatorNamespace: knative-serving
 spec:
   displayName: Knative Serving
   description: |
