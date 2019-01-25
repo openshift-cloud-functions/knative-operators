@@ -2,6 +2,8 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
   name: knative-build.v0.2.0
+  annotations:
+    alm-examples: '[{"apiVersion":"build.knative.dev/v1alpha1","kind":"Build","metadata":{"name":"sample-build"},"spec":{"source":{"git":{"url":"https://github.com/knative/build.git","revision":"master"}},"steps":[{"image":"fedora","args":["cat", "README.md"]}]}}]'
 spec:
   displayName: Knative Build
   description: |
@@ -17,7 +19,7 @@ spec:
     type: SingleNamespace
   - supported: false
     type: MultiNamespace
-  - supported: false
+  - supported: true
     type: AllNamespaces
 
   install:

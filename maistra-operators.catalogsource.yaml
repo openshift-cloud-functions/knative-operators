@@ -42,7 +42,7 @@ data:
           type: SingleNamespace
         - supported: false
           type: MultiNamespace
-        - supported: false
+        - supported: true
           type: AllNamespaces
         install:
           strategy: deployment

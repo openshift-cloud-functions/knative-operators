@@ -159,9 +159,6 @@ function install_istio {
 	metadata:
 	  name: istio-operator
 	  namespace: istio-operator
-	spec:
-	  targetNamespaces:
-	    - istio-operator
 	EOF
   fi
   cat <<-EOF | oc apply -f -
@@ -217,9 +214,6 @@ function install_knative_build {
 	metadata:
 	  name: knative-build
 	  namespace: knative-build
-	spec:
-	  targetNamespaces:
-	    - knative-build
 	EOF
   fi
   cat <<-EOF | oc apply -f -
@@ -246,9 +240,6 @@ function install_knative_serving {
 	metadata:
 	  name: knative-serving
 	  namespace: knative-serving
-	spec:
-	  targetNamespaces:
-	    - knative-serving
 	EOF
   fi
   cat <<-EOF | oc apply -f -
@@ -275,9 +266,6 @@ function install_knative_eventing {
 	metadata:
 	  name: knative-eventing
 	  namespace: knative-eventing
-	spec:
-	  targetNamespaces:
-	    - knative-eventing
 	EOF
   fi
   cat <<-EOF | oc apply -f -
