@@ -23,9 +23,6 @@ data:
       kind: ClusterServiceVersion
       metadata:
         name: maistra.v0.5.0
-        annotations:
-          olm.operatorGroup: istio-operator
-          olm.operatorNamespace: istio-operator
       spec:
         displayName: Maistra
         description: "Maistra, otherwise known as OpenShift Service Mesh, is Red Hat's version of Istio."
@@ -43,7 +40,7 @@ data:
           type: OwnNamespace
         - supported: true
           type: SingleNamespace
-        - supported: true
+        - supported: false
           type: MultiNamespace
         - supported: true
           type: AllNamespaces

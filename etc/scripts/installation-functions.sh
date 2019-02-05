@@ -152,6 +152,15 @@ function install_olm {
 function install_istio {
   # istio
   oc create ns istio-operator
+  if check_operatorgroups; then
+    cat <<-EOF | oc apply -f -
+	apiVersion: operators.coreos.com/v1alpha2
+	kind: OperatorGroup
+	metadata:
+	  name: istio-operator
+	  namespace: istio-operator
+	EOF
+  fi
   cat <<-EOF | oc apply -f -
 	apiVersion: operators.coreos.com/v1alpha1
 	kind: Subscription
@@ -163,15 +172,6 @@ function install_istio {
 	  name: maistra
 	  source: maistra-operators
 	EOF
-  if check_operatorgroups; then
-    cat <<-EOF | oc apply -f -
-	apiVersion: operators.coreos.com/v1alpha2
-	kind: OperatorGroup
-	metadata:
-	  name: istio-operator
-	  namespace: istio-operator
-	EOF
-  fi
   wait_for_all_pods istio-operator
 
   cat <<-EOF | oc apply -f -
@@ -207,6 +207,15 @@ function install_istio {
 
 function install_knative_build {
   oc create ns knative-build
+  if check_operatorgroups; then
+    cat <<-EOF | oc apply -f -
+	apiVersion: operators.coreos.com/v1alpha2
+	kind: OperatorGroup
+	metadata:
+	  name: knative-build
+	  namespace: knative-build
+	EOF
+  fi
   cat <<-EOF | oc apply -f -
 	apiVersion: operators.coreos.com/v1alpha1
 	kind: Subscription
@@ -220,19 +229,19 @@ function install_knative_build {
 	  startingCSV: knative-build.${KNATIVE_BUILD_VERSION}
 	  channel: alpha
 	EOF
+}
+
+function install_knative_serving {
+  oc create ns knative-serving
   if check_operatorgroups; then
     cat <<-EOF | oc apply -f -
 	apiVersion: operators.coreos.com/v1alpha2
 	kind: OperatorGroup
 	metadata:
-	  name: knative-build
-	  namespace: knative-build
+	  name: knative-serving
+	  namespace: knative-serving
 	EOF
   fi
-}
-
-function install_knative_serving {
-  oc create ns knative-serving
   cat <<-EOF | oc apply -f -
 	apiVersion: operators.coreos.com/v1alpha1
 	kind: Subscription
@@ -246,19 +255,19 @@ function install_knative_serving {
 	  startingCSV: knative-serving.${KNATIVE_SERVING_VERSION}
 	  channel: alpha
 	EOF
+}
+
+function install_knative_eventing {
+  oc create ns knative-eventing
   if check_operatorgroups; then
     cat <<-EOF | oc apply -f -
 	apiVersion: operators.coreos.com/v1alpha2
 	kind: OperatorGroup
 	metadata:
-	  name: knative-serving
-	  namespace: knative-serving
+	  name: knative-eventing
+	  namespace: knative-eventing
 	EOF
   fi
-}
-
-function install_knative_eventing {
-  oc create ns knative-eventing
   cat <<-EOF | oc apply -f -
 	apiVersion: operators.coreos.com/v1alpha1
 	kind: Subscription
@@ -272,13 +281,4 @@ function install_knative_eventing {
 	  startingCSV: knative-eventing.${KNATIVE_EVENTING_VERSION}
 	  channel: alpha
 	EOF
-  if check_operatorgroups; then
-    cat <<-EOF | oc apply -f -
-	apiVersion: operators.coreos.com/v1alpha2
-	kind: OperatorGroup
-	metadata:
-	  name: knative-eventing
-	  namespace: knative-eventing
-	EOF
-  fi
 }

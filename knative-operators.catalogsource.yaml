@@ -757,8 +757,7 @@ data:
       metadata:
         name: knative-build.v0.2.0
         annotations:
-          olm.operatorGroup: knative-build
-          olm.operatorNamespace: knative-build
+          alm-examples: '[{"apiVersion":"build.knative.dev/v1alpha1","kind":"Build","metadata":{"name":"sample-build"},"spec":{"source":{"git":{"url":"https://github.com/knative/build.git","revision":"master"}},"steps":[{"image":"fedora","args":["cat", "README.md"]}]}}]'
       spec:
         displayName: Knative Build
         description: |
@@ -772,7 +771,7 @@ data:
           type: OwnNamespace
         - supported: true
           type: SingleNamespace
-        - supported: true
+        - supported: false
           type: MultiNamespace
         - supported: true
           type: AllNamespaces
@@ -959,6 +958,27 @@ data:
               kind: Build
               name: builds.build.knative.dev
               version: v1alpha1
+              statusDescriptors:
+                - description: The Pod this Build ran on
+                  displayName: Build Pod
+                  path: cluster.podName
+                  x-descriptors:
+                    - 'urn:alm:descriptor:io.kubernetes:Pod'
+                - description: The start time of the Build
+                  displayName: Start Time
+                  path: startTime
+                  x-descriptors:
+                    - 'urn:alm:descriptor:text'
+                - description: The completion time of the Build
+                  displayName: Completion Time
+                  path: completionTime
+                  x-descriptors:
+                    - 'urn:alm:descriptor:text'
+                - description: The conditions of this Build
+                  displayName: Conditions
+                  path: conditions
+                  x-descriptors:
+                    - 'urn:alm:descriptor:io.kubernetes.conditions'
             - description: Encapsulates a configurable, reusable build process
               displayName: Build Template
               kind: BuildTemplate
@@ -1138,9 +1158,6 @@ data:
       kind: ClusterServiceVersion
       metadata:
         name: knative-eventing.v0.2.1
-        annotations:
-          olm.operatorGroup: knative-eventing
-          olm.operatorNamespace: knative-eventing
       spec:
         displayName: Knative Eventing
         description: |
@@ -1154,7 +1171,7 @@ data:
           type: OwnNamespace
         - supported: true
           type: SingleNamespace
-        - supported: true
+        - supported: false
           type: MultiNamespace
         - supported: true
           type: AllNamespaces
@@ -2276,9 +2293,6 @@ data:
       kind: ClusterServiceVersion
       metadata:
         name: knative-serving.v0.2.2
-        annotations:
-          olm.operatorGroup: knative-serving
-          olm.operatorNamespace: knative-serving
       spec:
         displayName: Knative Serving
         description: |
@@ -2292,7 +2306,7 @@ data:
           type: OwnNamespace
         - supported: true
           type: SingleNamespace
-        - supported: true
+        - supported: false
           type: MultiNamespace
         - supported: true
           type: AllNamespaces
@@ -2606,6 +2620,17 @@ data:
               description: "Maintains the desired state for your deployment. It provides a clean separation between code and configuration and follows the Twelve-Factor App methodology. Modifying a configuration creates a new revision."
               displayName: Configuration
               version: v1alpha1
+              statusDescriptors:
+                - description: The latest Revision for this Configuration
+                  displayName: Latest Revision
+                  path: latestCreatedRevisionName
+                  x-descriptors:
+                    - 'urn:alm:descriptor:text'
+                - description: The conditions of this Configuration
+                  displayName: Conditions
+                  path: conditions
+                  x-descriptors:
+                    - 'urn:alm:descriptor:io.kubernetes.conditions'
             - kind: Revision
               name: revisions.serving.knative.dev
               description: "A point-in-time snapshot of the code and configuration for each modification made to the workload. Revisions are immutable objects and can be retained for as long as useful."
@@ -2621,6 +2646,27 @@ data:
               description: "Automatically manages the whole lifecycle of your workload. It controls the creation of other objects to ensure that your app has a route, a configuration, and a new revision for each update of the service. Service can be defined to always route traffic to the latest revision or to a pinned revision."
               displayName: Knative Service
               version: v1alpha1
+              statusDescriptors:
+                - description: The external domain name for this Service
+                  displayName: External Domain
+                  path: domain
+                  x-descriptors:
+                    - 'urn:alm:descriptor:text'
+                - description: The in-cluster domain name for this Service
+                  displayName: Internal Domain
+                  path: address.hostname
+                  x-descriptors:
+                    - 'urn:alm:descriptor:text'
+                - description: The latest Revision for this Service
+                  displayName: Latest Revision
+                  path: latestCreatedRevisionName
+                  x-descriptors:
+                    - 'urn:alm:descriptor:text'
+                - description: The conditions of this Service
+                  displayName: Conditions
+                  path: conditions
+                  x-descriptors:
+                    - 'urn:alm:descriptor:io.kubernetes.conditions'
             - description: A cached build image?
               displayName: Image
               kind: Image
