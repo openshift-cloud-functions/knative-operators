@@ -1,3 +1,4 @@
+---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
@@ -15,7 +16,10 @@ spec:
     - chan
     singular: channel
   scope: Namespaced
+  subresources:
+    status: {}
   version: v1alpha1
+
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -35,7 +39,10 @@ spec:
     - ccp
     singular: clusterchannelprovisioner
   scope: Cluster
+  subresources:
+    status: {}
   version: v1alpha1
+
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -54,4 +61,6 @@ spec:
     - sub
     singular: subscription
   scope: Namespaced
+  subresources:
+    status: {}
   version: v1alpha1
