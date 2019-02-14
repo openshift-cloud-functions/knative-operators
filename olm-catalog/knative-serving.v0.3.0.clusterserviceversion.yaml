@@ -214,13 +214,17 @@ spec:
           - privileged
           - anyuid
         - apiGroups:
-          - '*'
+          - extensions
+          resources:
+          - deployments/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - serving.knative.dev
+          - networking.internal.knative.dev
           resources:
           - '*/finalizers'
           verbs:
-          - get
-          - list
-          - create
           - update
 
       deployments:

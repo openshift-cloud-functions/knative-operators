@@ -1243,13 +1243,16 @@ data:
                 - privileged
                 - anyuid
               - apiGroups:
-                - '*'
+                - extensions
+                resources:
+                - deployments/finalizers
+                verbs:
+                - update
+              - apiGroups:
+                - build.knative.dev
                 resources:
                 - '*/finalizers'
                 verbs:
-                - get
-                - list
-                - create
                 - update
               - apiGroups:
                 - policy
@@ -3559,13 +3562,17 @@ data:
                 - privileged
                 - anyuid
               - apiGroups:
-                - '*'
+                - extensions
+                resources:
+                - deployments/finalizers
+                verbs:
+                - update
+              - apiGroups:
+                - serving.knative.dev
+                - networking.internal.knative.dev
                 resources:
                 - '*/finalizers'
                 verbs:
-                - get
-                - list
-                - create
                 - update
 
             deployments:
