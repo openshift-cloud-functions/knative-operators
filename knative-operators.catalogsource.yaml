@@ -3540,6 +3540,7 @@ data:
                 - networking.istio.io
                 resources:
                 - virtualservices
+                - gateways
                 verbs:
                 - get
                 - list
