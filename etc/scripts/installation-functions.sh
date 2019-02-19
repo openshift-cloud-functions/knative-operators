@@ -26,7 +26,17 @@ function wait_for_all_pods {
 }
 
 function check_minishift {
-  (hash minishift && oc whoami --show-server | grep "$(minishift ip)") >/dev/null 2>&1
+  (hash minishift &&
+     minishift ip | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" &&
+     oc whoami --show-server | grep "$(minishift ip)"
+  ) >/dev/null 2>&1
+}
+
+function check_minikube {
+  (hash minikube &&
+     minikube ip | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" &&
+     oc whoami --show-server | grep "$(minikube ip)"
+  ) >/dev/null 2>&1
 }
 
 function check_openshift_4 {
@@ -40,6 +50,8 @@ function check_operatorgroups {
 function enable_admission_webhooks {
   if check_openshift_4; then
     echo "Detected OpenShift 4 - skipping enabling admission webhooks."
+  elif check_minikube; then
+    echo "Detected minikube - skipping enabling admission webhooks."
   elif check_minishift; then
     echo "Detected minishift - checking if admission webhooks are enabled."
     if ! minishift openshift config view --target=kube | grep ValidatingAdmissionWebhook >/dev/null; then
@@ -121,7 +133,7 @@ function install_olm {
   if check_openshift_4; then
     echo "Detected OpenShift 4 - skipping OLM installation."
     OLM_NS="openshift-operator-lifecycle-manager"
-  elif oc get ns "$OLM_NS"; then
+  elif oc get ns "$OLM_NS" 2>/dev/null; then
     echo "Detected OpenShift 3 with OLM already installed."
     # we'll assume this is v3.11.0, which doesn't support
     # OperatorGroups, or ClusterRoles in the CSV, so...
@@ -150,18 +162,23 @@ function install_olm {
 }
 
 function install_istio {
-  # istio
-  oc create ns istio-operator
-  if check_operatorgroups; then
-    cat <<-EOF | oc apply -f -
+  if check_minikube; then
+    echo "Detected minikube - incompatible with Maistra operator, so installing upstream istio."
+    oc apply -f "https://github.com/knative/serving/releases/download/${KNATIVE_SERVING_VERSION}/istio.yaml"
+    oc label namespace default istio-injection=enabled
+    wait_for_all_pods istio-system
+  else
+    oc create ns istio-operator
+    if check_operatorgroups; then
+      cat <<-EOF | oc apply -f -
 	apiVersion: operators.coreos.com/v1alpha2
 	kind: OperatorGroup
 	metadata:
 	  name: istio-operator
 	  namespace: istio-operator
 	EOF
-  fi
-  cat <<-EOF | oc apply -f -
+    fi
+    cat <<-EOF | oc apply -f -
 	apiVersion: operators.coreos.com/v1alpha1
 	kind: Subscription
 	metadata:
@@ -172,9 +189,9 @@ function install_istio {
 	  name: maistra
 	  source: maistra-operators
 	EOF
-  wait_for_all_pods istio-operator
+    wait_for_all_pods istio-operator
 
-  cat <<-EOF | oc apply -f -
+    cat <<-EOF | oc apply -f -
 	apiVersion: istio.openshift.com/v1alpha1
 	kind: Installation
 	metadata:
@@ -191,18 +208,19 @@ function install_istio {
 	    prefix: kiali/
 	    version: v0.7.1
 	EOF
-  timeout 900 'oc get pods -n istio-system && [[ $(oc get pods -n istio-system | grep openshift-ansible-istio-installer | grep -c Completed) -eq 0 ]]'
+    timeout 900 'oc get pods -n istio-system && [[ $(oc get pods -n istio-system | grep openshift-ansible-istio-installer | grep -c Completed) -eq 0 ]]'
 
-  # Scale down unused services deployed by the istio operator. The
-  # jaeger pods will fail anyway due to the elasticsearch pod failing
-  # due to "max virtual memory areas vm.max_map_count [65530] is too
-  # low, increase to at least [262144]" which could be mitigated on
-  # minishift with:
-  #  minishift ssh "echo 'echo vm.max_map_count = 262144 >/etc/sysctl.d/99-elasticsearch.conf' | sudo sh"
-  oc scale -n istio-system --replicas=0 deployment/grafana
-  oc scale -n istio-system --replicas=0 deployment/jaeger-collector
-  oc scale -n istio-system --replicas=0 deployment/jaeger-query
-  oc scale -n istio-system --replicas=0 statefulset/elasticsearch
+    # Scale down unused services deployed by the istio operator. The
+    # jaeger pods will fail anyway due to the elasticsearch pod failing
+    # due to "max virtual memory areas vm.max_map_count [65530] is too
+    # low, increase to at least [262144]" which could be mitigated on
+    # minishift with:
+    #  minishift ssh "echo 'echo vm.max_map_count = 262144 >/etc/sysctl.d/99-elasticsearch.conf' | sudo sh"
+    oc scale -n istio-system --replicas=0 deployment/grafana
+    oc scale -n istio-system --replicas=0 deployment/jaeger-collector
+    oc scale -n istio-system --replicas=0 deployment/jaeger-query
+    oc scale -n istio-system --replicas=0 statefulset/elasticsearch
+  fi
 }
 
 function install_knative_build {
