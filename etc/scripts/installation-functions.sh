@@ -49,9 +49,9 @@ function check_operatorgroups {
 
 function enable_admission_webhooks {
   if check_openshift_4; then
-    echo "Detected OpenShift 4 - skipping enabling admission webhooks."
+    echo "Detected OpenShift 4 - skipping enabling admission webhooks"
   elif check_minikube; then
-    echo "Detected minikube - skipping enabling admission webhooks."
+    echo "Detected minikube - assuming admission webhooks enabled via --extra-config"
   elif check_minishift; then
     echo "Detected minishift - checking if admission webhooks are enabled."
     if ! minishift openshift config view --target=kube | grep ValidatingAdmissionWebhook >/dev/null; then
@@ -165,7 +165,6 @@ function install_istio {
   if check_minikube; then
     echo "Detected minikube - incompatible with Maistra operator, so installing upstream istio."
     oc apply -f "https://github.com/knative/serving/releases/download/${KNATIVE_SERVING_VERSION}/istio.yaml"
-    oc label namespace default istio-injection=enabled
     wait_for_all_pods istio-system
   else
     oc create ns istio-operator

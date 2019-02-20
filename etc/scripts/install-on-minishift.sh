@@ -4,22 +4,27 @@
 # thereby guaranteeing (hopefully) a clean environment upon successful
 # completion.
 
-if minishift status | grep "Minishift:  Running" >/dev/null; then
+if minishift status | head -1 | grep "Running" >/dev/null; then
   echo "Please stop your running minishift to acknowledge this script will destroy it."
   exit 1
 fi
 
 set -x
 
+OPENSHIFT_VERSION=${OPENSHIFT_VERSION:-v3.11.0}
+MEMORY=${MEMORY:-10GB}
+CPUS=${CPUS:-4}
+DISK_SIZE=${DISK_SIZE:-50g}
+
 # blow away everything in the knative profile
 minishift profile delete knative --force
 
 # configure knative profile
 minishift profile set knative
-minishift config set openshift-version v3.11.0
-minishift config set memory 10GB
-minishift config set cpus 4
-minishift config set disk-size 50g
+minishift config set openshift-version ${OPENSHIFT_VERSION}
+minishift config set memory ${MEMORY}
+minishift config set cpus ${CPUS}
+minishift config set disk-size ${DISK_SIZE}
 minishift config set image-caching true
 minishift addons enable admin-user
 

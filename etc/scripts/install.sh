@@ -52,7 +52,6 @@ if oc get ns openshift 2>/dev/null; then
   oc adm policy add-scc-to-user anyuid -z default
 else
   oc create namespace myproject
-  oc label namespace myproject istio-injection=enabled
   oc project myproject
 fi
 
