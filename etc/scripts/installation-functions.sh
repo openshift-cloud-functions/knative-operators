@@ -11,6 +11,11 @@ KNATIVE_EVENTING_VERSION=v0.3.0
 
 INSTALL_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
+CMD=kubectl
+if hash oc 2>/dev/null; then
+  CMD=$_
+fi
+
 # Loops until duration (car) is exceeded or command (cdr) returns non-zero
 function timeout() {
   SECONDS=0; TIMEOUT=$1; shift
@@ -22,29 +27,37 @@ function timeout() {
 
 # Waits for all pods in the given namespace to complete successfully.
 function wait_for_all_pods {
-  timeout 300 "oc get pods -n $1 2>&1 | grep -v -E '(Running|Completed|STATUS)'"
+  timeout 300 "$CMD get pods -n $1 2>&1 | grep -v -E '(Running|Completed|STATUS)'"
+}
+
+function show_server {
+  if [ "$CMD" = "oc" ]; then
+    $CMD whoami --show-server
+  else
+    $CMD cluster-info | head -1
+  fi
 }
 
 function check_minishift {
   (hash minishift &&
      minishift ip | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" &&
-     oc whoami --show-server | grep "$(minishift ip)"
+     show_server | grep "$(minishift ip)"
   ) >/dev/null 2>&1
 }
 
 function check_minikube {
   (hash minikube &&
      minikube ip | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" &&
-     oc whoami --show-server | grep "$(minikube ip)"
+     show_server | grep "$(minikube ip)"
   ) >/dev/null 2>&1
 }
 
 function check_openshift_4 {
-  oc api-resources | grep machineconfigs | grep machineconfiguration.openshift.io > /dev/null 2>&1
+  $CMD api-resources | grep machineconfigs | grep machineconfiguration.openshift.io > /dev/null 2>&1
 }
 
 function check_operatorgroups {
-  oc get crd operatorgroups.operators.coreos.com >/dev/null 2>&1
+  $CMD get crd operatorgroups.operators.coreos.com >/dev/null 2>&1
 }
 
 function enable_admission_webhooks {
@@ -84,7 +97,7 @@ function enable_admission_webhooks {
   else
     echo "Attempting to enable admission webhooks via SSH."
     KUBE_SSH_USER=${KUBE_SSH_USER:-cloud-user}
-    API_SERVER=$(oc config view --minify | grep server | awk -F'//' '{print $2}' | awk -F':' '{print $1}')
+    API_SERVER=$($CMD config view --minify | grep server | awk -F'//' '{print $2}' | awk -F':' '{print $1}')
 
     ssh $KUBE_SSH_USER@$API_SERVER -i $KUBE_SSH_KEY /bin/bash <<- EOF
 	sudo -i
@@ -133,7 +146,7 @@ function install_olm {
   if check_openshift_4; then
     echo "Detected OpenShift 4 - skipping OLM installation."
     OLM_NS="openshift-operator-lifecycle-manager"
-  elif oc get ns "$OLM_NS" 2>/dev/null; then
+  elif $CMD get ns "$OLM_NS" 2>/dev/null; then
     echo "Detected OpenShift 3 with OLM already installed."
     # we'll assume this is v3.11.0, which doesn't support
     # OperatorGroups, or ClusterRoles in the CSV, so...
@@ -148,28 +161,28 @@ function install_olm {
     rm -rf "$OLM_DIR"
     git clone https://github.com/operator-framework/operator-lifecycle-manager "$OLM_DIR"
     pushd $OLM_DIR; git checkout eaf605cca864e; popd
-    for i in "$OLM_DIR"/deploy/okd/manifests/latest/*.crd.yaml; do oc apply -f $i; done
-    for i in $(find "$OLM_DIR/deploy/okd/manifests/latest/" -type f ! -name "*crd.yaml" | sort); do oc create -f $i; done
+    for i in "$OLM_DIR"/deploy/okd/manifests/latest/*.crd.yaml; do $CMD apply -f $i; done
+    for i in $(find "$OLM_DIR/deploy/okd/manifests/latest/" -type f ! -name "*crd.yaml" | sort); do $CMD create -f $i; done
     wait_for_all_pods openshift-operator-lifecycle-manager
     # perms required by the OLM console: $OLM_DIR/scripts/run_console_local.sh
-    oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:kube-system:default
+    # oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:kube-system:default
     # check our namespace
     OLM_NS=$(grep "catalog_namespace:" "$OLM_DIR/deploy/okd/values.yaml" | awk '{print $2}')
   fi
   # and finally apply the catalog sources
-  oc apply -f "$ROOT_DIR/knative-operators.catalogsource.yaml" -n "$OLM_NS"
-  oc apply -f "$ROOT_DIR/maistra-operators.catalogsource.yaml" -n "$OLM_NS"
+  $CMD apply -f "$ROOT_DIR/knative-operators.catalogsource.yaml" -n "$OLM_NS"
+  $CMD apply -f "$ROOT_DIR/maistra-operators.catalogsource.yaml" -n "$OLM_NS"
 }
 
 function install_istio {
   if check_minikube; then
     echo "Detected minikube - incompatible with Maistra operator, so installing upstream istio."
-    oc apply -f "https://github.com/knative/serving/releases/download/${KNATIVE_SERVING_VERSION}/istio.yaml"
+    $CMD apply -f "https://github.com/knative/serving/releases/download/${KNATIVE_SERVING_VERSION}/istio.yaml"
     wait_for_all_pods istio-system
   else
-    oc create ns istio-operator
+    $CMD create ns istio-operator
     if check_operatorgroups; then
-      cat <<-EOF | oc apply -f -
+      cat <<-EOF | $CMD apply -f -
 	apiVersion: operators.coreos.com/v1alpha2
 	kind: OperatorGroup
 	metadata:
@@ -177,7 +190,7 @@ function install_istio {
 	  namespace: istio-operator
 	EOF
     fi
-    cat <<-EOF | oc apply -f -
+    cat <<-EOF | $CMD apply -f -
 	apiVersion: operators.coreos.com/v1alpha1
 	kind: Subscription
 	metadata:
@@ -190,7 +203,7 @@ function install_istio {
 	EOF
     wait_for_all_pods istio-operator
 
-    cat <<-EOF | oc apply -f -
+    cat <<-EOF | $CMD apply -f -
 	apiVersion: istio.openshift.com/v1alpha1
 	kind: Installation
 	metadata:
@@ -207,7 +220,7 @@ function install_istio {
 	    prefix: kiali/
 	    version: v0.7.1
 	EOF
-    timeout 900 'oc get pods -n istio-system && [[ $(oc get pods -n istio-system | grep openshift-ansible-istio-installer | grep -c Completed) -eq 0 ]]'
+    timeout 900 '$CMD get pods -n istio-system && [[ $($CMD get pods -n istio-system | grep openshift-ansible-istio-installer | grep -c Completed) -eq 0 ]]'
 
     # Scale down unused services deployed by the istio operator. The
     # jaeger pods will fail anyway due to the elasticsearch pod failing
@@ -215,17 +228,17 @@ function install_istio {
     # low, increase to at least [262144]" which could be mitigated on
     # minishift with:
     #  minishift ssh "echo 'echo vm.max_map_count = 262144 >/etc/sysctl.d/99-elasticsearch.conf' | sudo sh"
-    oc scale -n istio-system --replicas=0 deployment/grafana
-    oc scale -n istio-system --replicas=0 deployment/jaeger-collector
-    oc scale -n istio-system --replicas=0 deployment/jaeger-query
-    oc scale -n istio-system --replicas=0 statefulset/elasticsearch
+    $CMD scale -n istio-system --replicas=0 deployment/grafana
+    $CMD scale -n istio-system --replicas=0 deployment/jaeger-collector
+    $CMD scale -n istio-system --replicas=0 deployment/jaeger-query
+    $CMD scale -n istio-system --replicas=0 statefulset/elasticsearch
   fi
 }
 
 function install_knative_build {
-  oc create ns knative-build
+  $CMD create ns knative-build
   if check_operatorgroups; then
-    cat <<-EOF | oc apply -f -
+    cat <<-EOF | $CMD apply -f -
 	apiVersion: operators.coreos.com/v1alpha2
 	kind: OperatorGroup
 	metadata:
@@ -233,7 +246,7 @@ function install_knative_build {
 	  namespace: knative-build
 	EOF
   fi
-  cat <<-EOF | oc apply -f -
+  cat <<-EOF | $CMD apply -f -
 	apiVersion: operators.coreos.com/v1alpha1
 	kind: Subscription
 	metadata:
@@ -249,9 +262,9 @@ function install_knative_build {
 }
 
 function install_knative_serving {
-  oc create ns knative-serving
+  $CMD create ns knative-serving
   if check_operatorgroups; then
-    cat <<-EOF | oc apply -f -
+    cat <<-EOF | $CMD apply -f -
 	apiVersion: operators.coreos.com/v1alpha2
 	kind: OperatorGroup
 	metadata:
@@ -259,7 +272,7 @@ function install_knative_serving {
 	  namespace: knative-serving
 	EOF
   fi
-  cat <<-EOF | oc apply -f -
+  cat <<-EOF | $CMD apply -f -
 	apiVersion: operators.coreos.com/v1alpha1
 	kind: Subscription
 	metadata:
@@ -275,9 +288,9 @@ function install_knative_serving {
 }
 
 function install_knative_eventing {
-  oc create ns knative-eventing
+  $CMD create ns knative-eventing
   if check_operatorgroups; then
-    cat <<-EOF | oc apply -f -
+    cat <<-EOF | $CMD apply -f -
 	apiVersion: operators.coreos.com/v1alpha2
 	kind: OperatorGroup
 	metadata:
@@ -285,7 +298,7 @@ function install_knative_eventing {
 	  namespace: knative-eventing
 	EOF
   fi
-  cat <<-EOF | oc apply -f -
+  cat <<-EOF | $CMD apply -f -
 	apiVersion: operators.coreos.com/v1alpha1
 	kind: Subscription
 	metadata:
