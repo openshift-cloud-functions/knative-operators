@@ -7,8 +7,8 @@ if [ "$1" != "-q" ]; then
   echo "  This script will attempt to install istio, knative, and OLM in your "
   echo "  Kubernetes/OpenShift cluster."
   echo
-  echo "  If targeting OpenShift, a recent version of `oc` should be available"
-  echo "  in your PATH. Otherwise, `kubectl` will be used."
+  echo "  If targeting OpenShift, a recent version of 'oc' should be available"
+  echo "  in your PATH. Otherwise, 'kubectl' will be used."
   echo
   echo "  If using OpenShift 3.11 and your cluster isn't minishift, ensure"
   echo "  \$KUBE_SSH_KEY and \$KUBE_SSH_USER are set"

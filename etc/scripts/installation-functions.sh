@@ -177,6 +177,7 @@ function install_olm {
 function install_istio {
   if check_minikube; then
     echo "Detected minikube - incompatible with Maistra operator, so installing upstream istio."
+    $CMD apply -f "https://github.com/knative/serving/releases/download/${KNATIVE_SERVING_VERSION}/istio-crds.yaml" && \
     $CMD apply -f "https://github.com/knative/serving/releases/download/${KNATIVE_SERVING_VERSION}/istio.yaml"
     wait_for_all_pods istio-system
   else
