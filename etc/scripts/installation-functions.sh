@@ -38,6 +38,10 @@ function show_server {
   fi
 }
 
+function olm_namespace {
+  $CMD get pods --all-namespaces | grep catalog-operator | awk '{print $1}'
+}
+
 function check_minishift {
   (hash minishift &&
      minishift ip | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" &&
@@ -53,7 +57,7 @@ function check_minikube {
 }
 
 function check_openshift_4 {
-  $CMD api-resources | grep machineconfigs | grep machineconfiguration.openshift.io > /dev/null 2>&1
+  ($CMD get ns openshift && $CMD version | tail -1 | grep "v1.12") >/dev/null 2>&1
 }
 
 function check_operatorgroups {
@@ -142,12 +146,10 @@ function enable_admission_webhooks {
 
 function install_olm {
   local ROOT_DIR="$INSTALL_SCRIPT_DIR/../.."
-  local OLM_NS="operator-lifecycle-manager"
   if check_openshift_4; then
     echo "Detected OpenShift 4 - skipping OLM installation."
-    OLM_NS="openshift-operator-lifecycle-manager"
-  elif $CMD get ns "$OLM_NS" 2>/dev/null; then
-    echo "Detected OpenShift 3 with OLM already installed."
+  elif $CMD get ns "operator-lifecycle-manager" 2>/dev/null; then
+    echo "Detected OpenShift 3 with an older OLM already installed."
     # we'll assume this is v3.11.0, which doesn't support
     # OperatorGroups, or ClusterRoles in the CSV, so...
     oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:istio-operator:istio-operator
@@ -160,18 +162,21 @@ function install_olm {
     mkdir -p "$REPO_DIR"
     rm -rf "$OLM_DIR"
     git clone https://github.com/operator-framework/operator-lifecycle-manager "$OLM_DIR"
-    pushd $OLM_DIR; git checkout eaf605cca864e; popd
+    pushd $OLM_DIR; git checkout f474ec872ca7b1dd; popd
     for i in "$OLM_DIR"/deploy/okd/manifests/latest/*.crd.yaml; do $CMD apply -f $i; done
     for i in $(find "$OLM_DIR/deploy/okd/manifests/latest/" -type f ! -name "*crd.yaml" | sort); do $CMD create -f $i; done
     wait_for_all_pods openshift-operator-lifecycle-manager
     # perms required by the OLM console: $OLM_DIR/scripts/run_console_local.sh
     # oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:kube-system:default
-    # check our namespace
-    OLM_NS=$(grep "catalog_namespace:" "$OLM_DIR/deploy/okd/values.yaml" | awk '{print $2}')
   fi
-  # and finally apply the catalog sources
+}
+
+function install_catalogsources {
+  local ROOT_DIR="$INSTALL_SCRIPT_DIR/../.."
+  local OLM_NS=$(olm_namespace)
   $CMD apply -f "$ROOT_DIR/knative-operators.catalogsource.yaml" -n "$OLM_NS"
   $CMD apply -f "$ROOT_DIR/maistra-operators.catalogsource.yaml" -n "$OLM_NS"
+  wait_for_all_pods "$OLM_NS"
 }
 
 function install_istio {
@@ -201,6 +206,7 @@ function install_istio {
 	  channel: alpha
 	  name: maistra
 	  source: maistra-operators
+	  sourceNamespace: $(olm_namespace)
 	EOF
     wait_for_all_pods istio-operator
 
@@ -256,6 +262,7 @@ function install_knative_build {
 	  namespace: knative-build
 	spec:
 	  source: knative-operators
+	  sourceNamespace: $(olm_namespace)
 	  name: knative-build
 	  startingCSV: knative-build.${KNATIVE_BUILD_VERSION}
 	  channel: alpha
@@ -282,6 +289,7 @@ function install_knative_serving {
 	  namespace: knative-serving
 	spec:
 	  source: knative-operators
+	  sourceNamespace: $(olm_namespace)
 	  name: knative-serving
 	  startingCSV: knative-serving.${KNATIVE_SERVING_VERSION}
 	  channel: alpha
@@ -308,6 +316,7 @@ function install_knative_eventing {
 	  namespace: knative-eventing
 	spec:
 	  source: knative-operators
+	  sourceNamespace: $(olm_namespace)
 	  name: knative-eventing
 	  startingCSV: knative-eventing.${KNATIVE_EVENTING_VERSION}
 	  channel: alpha
