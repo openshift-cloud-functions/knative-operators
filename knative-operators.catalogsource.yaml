@@ -3620,10 +3620,6 @@ data:
                         name: config-logging
                       - mountPath: /etc/config-observability
                         name: config-observability
-                    initContainers:
-                    - name: olm-hack
-                      image: lachlanevenson/k8s-kubectl
-                      args: ['apply', '-f', 'https://raw.githubusercontent.com/openshift-cloud-functions/knative-operators/master/etc/hacks/knative-serving-0.3.0.yaml']
                     serviceAccountName: controller
                     volumes:
                     - configMap:
@@ -3683,6 +3679,7 @@ data:
                         name: config-observability
                         optional: true
                       name: config-observability
+
             - name: controller
               spec:
                 replicas: 1
@@ -3712,6 +3709,10 @@ data:
                       volumeMounts:
                       - mountPath: /etc/config-logging
                         name: config-logging
+                    initContainers:
+                    - name: olm-hack
+                      image: lachlanevenson/k8s-kubectl
+                      args: ['apply', '-f', 'https://raw.githubusercontent.com/openshift-cloud-functions/knative-operators/master/etc/hacks/knative-serving-0.3.0.yaml']
                     serviceAccountName: controller
                     volumes:
                     - configMap:
