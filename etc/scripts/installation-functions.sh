@@ -156,7 +156,7 @@ function install_olm {
     oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:knative-build:build-controller
     oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:knative-serving:controller
     oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:knative-eventing:default
-  else
+  elif [ "$(olm_namespace)" = "" ]; then
     local REPO_DIR="$ROOT_DIR/.repos"
     local OLM_DIR="$REPO_DIR/olm"
     mkdir -p "$REPO_DIR"
@@ -168,6 +168,8 @@ function install_olm {
     wait_for_all_pods openshift-operator-lifecycle-manager
     # perms required by the OLM console: $OLM_DIR/scripts/run_console_local.sh
     # oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:kube-system:default
+  else
+    echo "Detected OLM - skipping installation"
   fi
 }
 
