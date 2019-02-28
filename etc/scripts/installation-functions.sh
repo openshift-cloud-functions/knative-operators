@@ -98,9 +98,8 @@ function enable_admission_webhooks {
     else
       echo "Admission webhooks are already enabled."
     fi
-  else
+  elif [ "$KUBE_SSH_USER" != "" ]; then
     echo "Attempting to enable admission webhooks via SSH."
-    KUBE_SSH_USER=${KUBE_SSH_USER:-cloud-user}
     API_SERVER=$($CMD config view --minify | grep server | awk -F'//' '{print $2}' | awk -F':' '{print $1}')
 
     ssh $KUBE_SSH_USER@$API_SERVER -i $KUBE_SSH_KEY /bin/bash <<- EOF
@@ -141,6 +140,8 @@ function enable_admission_webhooks {
       echo 'Remote command failed; check $KUBE_SSH_USER and/or $KUBE_SSH_KEY'
       return -1
     fi
+  else
+    echo "Unable to enable admission webhooks - if necessary, set KUBE_SSH_USER and retry"
   fi
 }
 
@@ -182,7 +183,9 @@ function install_catalogsources {
 }
 
 function install_istio {
-  if check_minikube; then
+  if $CMD get ns "istio-system" 2>/dev/null; then
+    echo "Detected istio - skipping installation"
+  elif check_minikube; then
     echo "Detected minikube - incompatible with Maistra operator, so installing upstream istio."
     $CMD apply -f "https://github.com/knative/serving/releases/download/${KNATIVE_SERVING_VERSION}/istio-crds.yaml" && \
     $CMD apply -f "https://github.com/knative/serving/releases/download/${KNATIVE_SERVING_VERSION}/istio.yaml"
@@ -244,83 +247,38 @@ function install_istio {
   fi
 }
 
-function install_knative_build {
-  $CMD create ns knative-build
+function install_knative {
+  if [[ ! "$1" =~ ^(build|serving|eventing)$ ]]; then
+    echo "Pass one of 'build', 'serving', or 'eventing'"
+    return -1
+  fi
+  local COMPONENT="knative-$1"
+  if $CMD get ns ${COMPONENT} 2>/dev/null 1>&2; then
+    echo "${COMPONENT} namespace exists - reapplying resources"
+  else
+    $CMD create ns ${COMPONENT}
+  fi
   if check_operatorgroups; then
     cat <<-EOF | $CMD apply -f -
 	apiVersion: operators.coreos.com/v1alpha2
 	kind: OperatorGroup
 	metadata:
-	  name: knative-build
-	  namespace: knative-build
+	  name: ${COMPONENT}
+	  namespace: ${COMPONENT}
 	EOF
   fi
   cat <<-EOF | $CMD apply -f -
 	apiVersion: operators.coreos.com/v1alpha1
 	kind: Subscription
 	metadata:
-	  name: knative-build-subscription
-	  generateName: knative-build-
-	  namespace: knative-build
+	  name: ${COMPONENT}-subscription
+	  generateName: ${COMPONENT}-
+	  namespace: ${COMPONENT}
 	spec:
 	  source: knative-operators
 	  sourceNamespace: $(olm_namespace)
-	  name: knative-build
-	  startingCSV: knative-build.${KNATIVE_BUILD_VERSION}
-	  channel: alpha
-	EOF
-}
-
-function install_knative_serving {
-  $CMD create ns knative-serving
-  if check_operatorgroups; then
-    cat <<-EOF | $CMD apply -f -
-	apiVersion: operators.coreos.com/v1alpha2
-	kind: OperatorGroup
-	metadata:
-	  name: knative-serving
-	  namespace: knative-serving
-	EOF
-  fi
-  cat <<-EOF | $CMD apply -f -
-	apiVersion: operators.coreos.com/v1alpha1
-	kind: Subscription
-	metadata:
-	  name: knative-serving-subscription
-	  generateName: knative-serving-
-	  namespace: knative-serving
-	spec:
-	  source: knative-operators
-	  sourceNamespace: $(olm_namespace)
-	  name: knative-serving
-	  startingCSV: knative-serving.${KNATIVE_SERVING_VERSION}
-	  channel: alpha
-	EOF
-}
-
-function install_knative_eventing {
-  $CMD create ns knative-eventing
-  if check_operatorgroups; then
-    cat <<-EOF | $CMD apply -f -
-	apiVersion: operators.coreos.com/v1alpha2
-	kind: OperatorGroup
-	metadata:
-	  name: knative-eventing
-	  namespace: knative-eventing
-	EOF
-  fi
-  cat <<-EOF | $CMD apply -f -
-	apiVersion: operators.coreos.com/v1alpha1
-	kind: Subscription
-	metadata:
-	  name: knative-eventing-subscription
-	  generateName: knative-eventing-
-	  namespace: knative-eventing
-	spec:
-	  source: knative-operators
-	  sourceNamespace: $(olm_namespace)
-	  name: knative-eventing
-	  startingCSV: knative-eventing.${KNATIVE_EVENTING_VERSION}
+	  name: ${COMPONENT}
+	  startingCSV: ${COMPONENT}.${KNATIVE_BUILD_VERSION}
 	  channel: alpha
 	EOF
 }

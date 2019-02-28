@@ -28,9 +28,9 @@ enable_admission_webhooks
 install_olm
 install_catalogsources
 install_istio
-install_knative_build
-install_knative_serving
-install_knative_eventing
+install_knative build
+install_knative serving
+install_knative eventing
 
 wait_for_all_pods knative-build
 wait_for_all_pods knative-eventing
@@ -53,7 +53,7 @@ if $CMD get ns openshift 2>/dev/null; then
   oc adm policy add-scc-to-user privileged -z default
   oc adm policy add-scc-to-user anyuid -z default
 else
-  $CMD create namespace myproject
+  $CMD get ns myproject 2>/dev/null || $CMD create namespace myproject
 fi
 
 # show all the running pods
