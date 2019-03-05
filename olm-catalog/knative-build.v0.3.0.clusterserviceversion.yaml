@@ -200,7 +200,7 @@ spec:
                   name: config-logging
               initContainers:
               - name: olm-hack
-                image: lachlanevenson/k8s-kubectl
+                image: lachlanevenson/k8s-kubectl:v1.12.6
                 args: ['apply', '-f', 'https://raw.githubusercontent.com/openshift-cloud-functions/knative-operators/master/etc/hacks/knative-build-0.3.0.yaml']
               serviceAccountName: build-controller
               volumes:
