@@ -229,7 +229,6 @@ function install_istio {
 	    username: admin
 	    password: admin
 	    prefix: kiali/
-	    version: v0.14.0
 	EOF
     timeout 900 '$CMD get pods -n istio-system && [[ $($CMD get pods -n istio-system | grep openshift-ansible-istio-installer | grep -c Completed) -eq 0 ]]'
 
