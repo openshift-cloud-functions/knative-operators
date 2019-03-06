@@ -19,9 +19,7 @@ KUBERNETES_VERSION=${KUBERNETES_VERSION:-v1.12.0}
 MEMORY=${MEMORY:-8192}
 CPUS=${CPUS:-4}
 DISK_SIZE=${DISK_SIZE:-50g}
-
-# blow away everything in the knative profile
-minikube delete --profile knative
+VM_DRIVER=${VM_DRIVER:-$(minikube config get vm-driver 2>/dev/null || echo "virtualbox")}
 
 # configure knative profile
 minikube profile knative
@@ -29,9 +27,18 @@ minikube config set kubernetes-version ${KUBERNETES_VERSION}
 minikube config set memory ${MEMORY}
 minikube config set cpus ${CPUS}
 minikube config set disk-size ${DISK_SIZE}
+minikube config set vm-driver ${VM_DRIVER}
+
+# blow away everything in the knative profile
+minikube delete
 
 # Start minikube
 minikube start -p knative --extra-config=apiserver.enable-admission-plugins="LimitRanger,NamespaceExists,NamespaceLifecycle,ResourceQuota,ServiceAccount,DefaultStorageClass,MutatingAdmissionWebhook"
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
-"$DIR/install.sh" -q
+if [ $? -eq 0 ]; then
+  DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+  "$DIR/install.sh" -q
+else
+  echo "Failed to start minikube!"
+  exit -1
+fi
