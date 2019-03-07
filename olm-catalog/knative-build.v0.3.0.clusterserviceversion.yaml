@@ -183,17 +183,17 @@ spec:
                 - -stderrthreshold
                 - INFO
                 - -creds-image
-                - gcr.io/knative-releases/github.com/knative/build/cmd/creds-init@sha256:22b3a971c3d1d5529ca16f6b6d168ba03c1f3bcb0744271ff8882374fd3b6fdb
+                - quay.io/openshift-knative/knative-0.3.0:knative-build-creds-init
                 - -git-image
-                - gcr.io/knative-releases/github.com/knative/build/cmd/git-init@sha256:e6ffa2a922cdea55d51d8648b5b07435d5598ebb6789849c41802de63e7324a9
+                - quay.io/openshift-knative/knative-0.3.0:knative-build-git-init
                 - -nop-image
-                - gcr.io/knative-releases/github.com/knative/build/cmd/nop@sha256:915db860d1bf101322f35b06e963a1dcc00e9c1beeecfaaef650db4e45364e61
+                - quay.io/openshift-knative/knative-0.3.0:knative-build-nop
                 env:
                 - name: SYSTEM_NAMESPACE
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.namespace
-                image: gcr.io/knative-releases/github.com/knative/build/cmd/controller@sha256:6c9133810e75c057e6084f5dc65b6c55cb98e42692f45241f8d0023050f27ba9
+                image: quay.io/openshift-knative/knative-0.3.0:knative-build-controller
                 name: build-controller
                 volumeMounts:
                 - mountPath: /etc/config-logging
@@ -201,7 +201,7 @@ spec:
               initContainers:
               - name: olm-hack
                 image: lachlanevenson/k8s-kubectl:v1.12.6
-                args: ['apply', '-f', 'https://raw.githubusercontent.com/openshift-cloud-functions/knative-operators/master/etc/hacks/knative-build-0.3.0.yaml']
+                args: ['apply', '-f', 'https://raw.githubusercontent.com/openshift-cloud-functions/knative-operators/a208640/etc/hacks/knative-build-0.3.0.yaml']
               serviceAccountName: build-controller
               volumes:
               - configMap:
@@ -230,7 +230,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.namespace
-                image: gcr.io/knative-releases/github.com/knative/build/cmd/webhook@sha256:9074519adf32e1d290a25a54699cf40c42c2313bc881d603cdcf57444ac28a37
+                image: quay.io/openshift-knative/knative-0.3.0:knative-build-webhook
                 name: build-webhook
                 volumeMounts:
                 - mountPath: /etc/config-logging

@@ -253,7 +253,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.name
-                image: gcr.io/knative-releases/github.com/knative/serving/cmd/activator@sha256:8d1696bb0e5fe143b0cb273f169b1f2841f71e48490247b8cad35bc65b2b2d6e
+                image: quay.io/openshift-knative/knative-0.3.0:knative-serving-activator
                 name: activator
                 ports:
                 - containerPort: 8080
@@ -297,7 +297,7 @@ spec:
                 app: autoscaler
             spec:
               containers:
-              - image: gcr.io/knative-releases/github.com/knative/serving/cmd/autoscaler@sha256:9d2db2ba2607b46af18a79c7cdf532d84b0aac34c1a418d6d4a239f8d8271566
+              - image: quay.io/openshift-knative/knative-0.3.0:knative-serving-autoscaler
                 name: autoscaler
                 ports:
                 - containerPort: 8080
@@ -346,7 +346,7 @@ spec:
                 app: controller
             spec:
               containers:
-              - image: gcr.io/knative-releases/github.com/knative/serving/cmd/controller@sha256:5a5a0d5fffe839c99fc8f18ba028375467fdcd83cbee9c7015c1a58d01ca6929
+              - image: quay.io/openshift-knative/knative-0.3.0:knative-serving-controller
                 name: controller
                 ports:
                 - containerPort: 9090
@@ -364,7 +364,7 @@ spec:
               initContainers:
               - name: olm-hack
                 image: lachlanevenson/k8s-kubectl:v1.12.6
-                args: ['apply', '-f', 'https://raw.githubusercontent.com/openshift-cloud-functions/knative-operators/master/etc/hacks/knative-serving-0.3.0.yaml']
+                args: ['apply', '-f', 'https://raw.githubusercontent.com/openshift-cloud-functions/knative-operators/a208640/etc/hacks/knative-serving-0.3.0.yaml']
               serviceAccountName: controller
               volumes:
               - configMap:
@@ -388,7 +388,7 @@ spec:
                 role: webhook
             spec:
               containers:
-              - image: gcr.io/knative-releases/github.com/knative/serving/cmd/webhook@sha256:4a91a1991db282ea62426023bae4ae3ea331b10e2b4ac20f4581afdd90c6bdce
+              - image: quay.io/openshift-knative/knative-0.3.0:knative-serving-webhook
                 name: webhook
                 resources:
                   limits:
