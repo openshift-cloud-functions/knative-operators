@@ -57,7 +57,11 @@ function check_minikube {
 }
 
 function check_openshift_4 {
-  ($CMD get ns openshift && $CMD version | tail -1 | grep "v1.12") >/dev/null 2>&1
+  if $CMD api-resources >/dev/null; then
+    $CMD api-resources | grep machineconfigs | grep machineconfiguration.openshift.io > /dev/null 2>&1
+  else
+    ($CMD get ns openshift && $CMD version | tail -1 | grep "v1.12") >/dev/null 2>&1
+  fi
 }
 
 function check_operatorgroups {
@@ -242,6 +246,8 @@ function install_istio {
     $CMD scale -n istio-system --replicas=0 deployment/jaeger-collector
     $CMD scale -n istio-system --replicas=0 deployment/jaeger-query
     $CMD scale -n istio-system --replicas=0 statefulset/elasticsearch
+
+    patch_istio_for_knative
   fi
 }
 
@@ -279,4 +285,35 @@ function install_knative {
 	  startingCSV: ${COMPONENT}.${KNATIVE_BUILD_VERSION}
 	  channel: alpha
 	EOF
+}
+
+function enable_interaction_with_registry() {
+  if check_openshift_4; then
+    local ns=${1:-knative-serving}
+    local configmap_name=config-service-ca
+    local cert_name=service-ca.crt
+    local mount_path=/var/run/secrets/kubernetes.io/servicecerts
+
+    $CMD -n $ns create configmap $configmap_name
+    $CMD -n $ns annotate configmap $configmap_name service.alpha.openshift.io/inject-cabundle="true"
+    timeout 180 '! $CMD -n $ns get cm $configmap_name -oyaml | grep $cert_name'
+    $CMD -n $ns set volume deployment/controller --add --name=service-ca --configmap-name=$configmap_name --mount-path=$mount_path
+    $CMD -n $ns set env deployment/controller SSL_CERT_FILE=$mount_path/$cert_name
+  else
+    echo "Registry configuration only required for OCP4"
+  fi
+}
+
+function patch_istio_for_knative() {
+  local sidecar_config=$($CMD get configmap -n istio-system istio-sidecar-injector -o yaml)
+  if [[ -z "${sidecar_config}" ]]; then
+    return 1
+  fi
+  echo "${sidecar_config}" | grep lifecycle
+  if [[ $? -eq 1 ]]; then
+    echo "Patching Istio's preStop hook for graceful shutdown"
+    echo "${sidecar_config}" | sed 's/\(name: istio-proxy\)/\1\\n    lifecycle:\\n      preStop:\\n        exec:\\n          command: [\\"sh\\", \\"-c\\", \\"sleep 20; while [ $(netstat -plunt | grep tcp | grep -v envoy | wc -l | xargs) -ne 0 ]; do sleep 1; done\\"]/' | $CMD replace -f -
+    $CMD delete pod -n istio-system -l istio=sidecar-injector
+    wait_for_all_pods istio-system
+  fi
 }

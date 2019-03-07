@@ -36,6 +36,8 @@ wait_for_all_pods knative-build
 wait_for_all_pods knative-eventing
 wait_for_all_pods knative-serving
 
+enable_interaction_with_registry
+
 # skip tag resolving for internal registry
 # OpenShift 3 and 4 place the registry in different locations, hence
 # the two hostnames here
