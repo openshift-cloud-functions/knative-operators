@@ -324,7 +324,7 @@ kind: Image
 metadata:
   name: queue-proxy
 spec:
-  image: gcr.io/knative-releases/github.com/knative/serving/cmd/queue@sha256:fc49125cb29f7bb2de2c4d6bd51153ce190cb522cf42df59898147d2074885cc
+  image: quay.io/openshift-knative/knative-0.3.0:knative-serving-queue
 ---
 apiVersion: caching.internal.knative.dev/v1alpha1
 kind: Image
@@ -372,7 +372,7 @@ metadata:
 ---
 apiVersion: v1
 data:
-  queueSidecarImage: gcr.io/knative-releases/github.com/knative/serving/cmd/queue@sha256:fc49125cb29f7bb2de2c4d6bd51153ce190cb522cf42df59898147d2074885cc
+  queueSidecarImage: quay.io/openshift-knative/knative-0.3.0:knative-serving-queue
   registriesSkippingTagResolving: ko.local,dev.local
 kind: ConfigMap
 metadata:

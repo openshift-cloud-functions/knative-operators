@@ -60,14 +60,14 @@ kind: Image
 metadata:
   name: creds-init
 spec:
-  image: gcr.io/knative-releases/github.com/knative/build/cmd/creds-init@sha256:22b3a971c3d1d5529ca16f6b6d168ba03c1f3bcb0744271ff8882374fd3b6fdb
+  image: quay.io/openshift-knative/knative-0.3.0:knative-build-creds-init
 ---
 apiVersion: caching.internal.knative.dev/v1alpha1
 kind: Image
 metadata:
   name: git-init
 spec:
-  image: gcr.io/knative-releases/github.com/knative/build/cmd/git-init@sha256:e6ffa2a922cdea55d51d8648b5b07435d5598ebb6789849c41802de63e7324a9
+  image: quay.io/openshift-knative/knative-0.3.0:knative-build-git-init
 ---
 apiVersion: caching.internal.knative.dev/v1alpha1
 kind: Image
@@ -81,7 +81,7 @@ kind: Image
 metadata:
   name: nop
 spec:
-  image: gcr.io/knative-releases/github.com/knative/build/cmd/nop@sha256:915db860d1bf101322f35b06e963a1dcc00e9c1beeecfaaef650db4e45364e61
+  image: quay.io/openshift-knative/knative-0.3.0:knative-build-nop
 ---
 apiVersion: v1
 data:
