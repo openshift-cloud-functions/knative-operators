@@ -691,6 +691,38 @@ data:
           status: {}
         version: v1alpha1
 
+    - apiVersion: apiextensions.k8s.io/v1beta1
+      kind: CustomResourceDefinition
+      metadata:
+        name: installs.serving.knative.dev
+      spec:
+        group: serving.knative.dev
+        names:
+          kind: Install
+          listKind: InstallList
+          plural: installs
+          singular: install
+        scope: Namespaced
+        subresources:
+          status: {}
+        validation:
+          openAPIV3Schema:
+            properties:
+              apiVersion:
+                type: string
+              kind:
+                type: string
+              metadata:
+                type: object
+              spec:
+                type: object
+              status:
+                type: object
+        version: v1alpha1
+        versions:
+        - name: v1alpha1
+          served: true
+          storage: true
   clusterServiceVersions: |-
     - apiVersion: operators.coreos.com/v1alpha1
       kind: ClusterServiceVersion
@@ -3575,185 +3607,44 @@ data:
                 - '*/finalizers'
                 verbs:
                 - update
+              - apiGroups:
+                - serving.knative.dev
+                resources:
+                - '*'
+                verbs:
+                - '*'
 
             deployments:
-            - name: activator
+            - name: knative-serving-operator
               spec:
                 replicas: 1
                 selector:
                   matchLabels:
-                    app: activator
-                    role: activator
+                    name: knative-serving-operator
                 template:
                   metadata:
-                    annotations:
-                      sidecar.istio.io/inject: "true"
                     labels:
-                      app: activator
-                      role: activator
+                      name: knative-serving-operator
                   spec:
-                    containers:
-                    - args:
-                      - -logtostderr=false
-                      - -stderrthreshold=FATAL
-                      env:
-                      - name: POD_NAME
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.name
-                      image: gcr.io/knative-releases/github.com/knative/serving/cmd/activator@sha256:8d1696bb0e5fe143b0cb273f169b1f2841f71e48490247b8cad35bc65b2b2d6e
-                      name: activator
-                      ports:
-                      - containerPort: 8080
-                        name: activator-port
-                      - containerPort: 9090
-                        name: metrics-port
-                      resources:
-                        limits:
-                          cpu: 200m
-                          memory: 600Mi
-                        requests:
-                          cpu: 20m
-                          memory: 60Mi
-                      volumeMounts:
-                      - mountPath: /etc/config-logging
-                        name: config-logging
-                      - mountPath: /etc/config-observability
-                        name: config-observability
                     serviceAccountName: controller
-                    volumes:
-                    - configMap:
-                        name: config-logging
-                        optional: true
-                      name: config-logging
-                    - configMap:
-                        name: config-observability
-                        optional: true
-                      name: config-observability
-
-            - name: autoscaler
-              spec:
-                replicas: 1
-                selector:
-                  matchLabels:
-                    app: autoscaler
-                template:
-                  metadata:
-                    annotations:
-                      sidecar.istio.io/inject: "true"
-                    labels:
-                      app: autoscaler
-                  spec:
                     containers:
-                    - image: gcr.io/knative-releases/github.com/knative/serving/cmd/autoscaler@sha256:9d2db2ba2607b46af18a79c7cdf532d84b0aac34c1a418d6d4a239f8d8271566
-                      name: autoscaler
-                      ports:
-                      - containerPort: 8080
-                        name: websocket
-                      - containerPort: 9090
-                        name: metrics
-                      resources:
-                        limits:
-                          cpu: 300m
-                          memory: 400Mi
-                        requests:
-                          cpu: 30m
-                          memory: 40Mi
-                      volumeMounts:
-                      - mountPath: /etc/config-autoscaler
-                        name: config-autoscaler
-                      - mountPath: /etc/config-logging
-                        name: config-logging
-                      - mountPath: /etc/config-observability
-                        name: config-observability
-                    serviceAccountName: controller
-                    volumes:
-                    - configMap:
-                        name: config-autoscaler
-                      name: config-autoscaler
-                    - configMap:
-                        name: config-logging
-                        optional: true
-                      name: config-logging
-                    - configMap:
-                        name: config-observability
-                        optional: true
-                      name: config-observability
-
-            - name: controller
-              spec:
-                replicas: 1
-                selector:
-                  matchLabels:
-                    app: controller
-                template:
-                  metadata:
-                    annotations:
-                      sidecar.istio.io/inject: "false"
-                    labels:
-                      app: controller
-                  spec:
-                    containers:
-                    - image: gcr.io/knative-releases/github.com/knative/serving/cmd/controller@sha256:5a5a0d5fffe839c99fc8f18ba028375467fdcd83cbee9c7015c1a58d01ca6929
-                      name: controller
-                      ports:
-                      - containerPort: 9090
-                        name: metrics
-                      resources:
-                        limits:
-                          cpu: 1000m
-                          memory: 1000Mi
-                        requests:
-                          cpu: 100m
-                          memory: 100Mi
-                      volumeMounts:
-                      - mountPath: /etc/config-logging
-                        name: config-logging
-                    initContainers:
-                    - name: olm-hack
-                      image: lachlanevenson/k8s-kubectl:v1.12.6
-                      args: ['apply', '-f', 'https://raw.githubusercontent.com/openshift-cloud-functions/knative-operators/master/etc/hacks/knative-serving-0.3.0.yaml']
-                    serviceAccountName: controller
-                    volumes:
-                    - configMap:
-                        name: config-logging
-                        optional: true
-                      name: config-logging
-
-            - name: webhook
-              spec:
-                replicas: 1
-                selector:
-                  matchLabels:
-                    app: webhook
-                    role: webhook
-                template:
-                  metadata:
-                    annotations:
-                      sidecar.istio.io/inject: "false"
-                    labels:
-                      app: webhook
-                      role: webhook
-                  spec:
-                    containers:
-                    - image: gcr.io/knative-releases/github.com/knative/serving/cmd/webhook@sha256:4a91a1991db282ea62426023bae4ae3ea331b10e2b4ac20f4581afdd90c6bdce
-                      name: webhook
-                      resources:
-                        limits:
-                          cpu: 200m
-                          memory: 200Mi
-                        requests:
-                          cpu: 20m
-                          memory: 20Mi
-                      volumeMounts:
-                      - mountPath: /etc/config-logging
-                        name: config-logging
-                    serviceAccountName: controller
-                    volumes:
-                    - configMap:
-                        name: config-logging
-                        optional: true
-                      name: config-logging
+                      - name: knative-serving-operator
+                        image: quay.io/jcrossley3/knative-serving-operator:0.3.0
+                        command:
+                        - knative-serving-operator
+                        args:
+                          - --olm
+                        env:
+                          - name: WATCH_NAMESPACE
+                            valueFrom:
+                              fieldRef:
+                                fieldPath: metadata.namespace
+                          - name: POD_NAME
+                            valueFrom:
+                              fieldRef:
+                                fieldPath: metadata.name
+                          - name: OPERATOR_NAME
+                            value: "knative-serving-operator"
 
         customresourcedefinitions:
           owned:
@@ -3823,6 +3714,11 @@ data:
               displayName: Pod Autoscaler
               kind: PodAutoscaler
               name: podautoscalers.autoscaling.internal.knative.dev
+              version: v1alpha1
+            - description: Knative Serving Installation
+              displayName: Install Operator
+              kind: Install
+              name: installs.serving.knative.dev
               version: v1alpha1
   packages: |-
     - packageName: knative-build
