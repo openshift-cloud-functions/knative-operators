@@ -39,7 +39,7 @@ function show_server {
 }
 
 function olm_namespace {
-  $CMD get pods --all-namespaces | grep catalog-operator | awk '{print $1}'
+  $CMD get pods --all-namespaces | grep olm-operator | head -1 | awk '{print $1}'
 }
 
 function check_minishift {
@@ -167,10 +167,12 @@ function install_olm {
     mkdir -p "$REPO_DIR"
     rm -rf "$OLM_DIR"
     git clone https://github.com/operator-framework/operator-lifecycle-manager "$OLM_DIR"
-    pushd $OLM_DIR; git checkout f474ec872ca7b1dd; popd
-    for i in "$OLM_DIR"/deploy/okd/manifests/latest/*.crd.yaml; do $CMD apply -f $i; done
-    for i in $(find "$OLM_DIR/deploy/okd/manifests/latest/" -type f ! -name "*crd.yaml" | sort); do $CMD create -f $i; done
-    wait_for_all_pods openshift-operator-lifecycle-manager
+
+    sed -i "s|quay.io/coreos/olm@sha256:995a181839f301585a0e115c083619b6d73812c58a8444d7b13b8e407010325f|quay.io/openshift/origin-operator-lifecycle-manager|g" $OLM_DIR/deploy/upstream/manifests/latest/0000_50_olm_06-olm-operator.deployment.yaml $OLM_DIR/deploy/upstream/manifests/latest/0000_50_olm_07-catalog-operator.deployment.yaml $OLM_DIR/deploy/upstream/manifests/latest/0000_50_olm_10-olm-operators.configmap.yaml
+
+    for i in "$OLM_DIR"/deploy/upstream/manifests/latest/*.crd.yaml; do $CMD apply -f $i; done
+    for i in $(find "$OLM_DIR/deploy/upstream/manifests/latest/" -type f ! -name "*crd.yaml" | sort); do $CMD create -f $i; done
+    wait_for_all_pods olm
     # perms required by the OLM console: $OLM_DIR/scripts/run_console_local.sh
     # oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:kube-system:default
   else
