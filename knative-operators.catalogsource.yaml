@@ -3634,6 +3634,7 @@ data:
                         - knative-serving-operator
                         args:
                           - --olm
+                          - --install
                         env:
                           - name: WATCH_NAMESPACE
                             valueFrom:
