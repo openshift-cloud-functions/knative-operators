@@ -16,10 +16,10 @@ if hash oc 2>/dev/null; then
   CMD=$_
 fi
 
-# Loops until duration (car) is exceeded or command (cdr) returns non-zero
+# Loops until duration (car) is exceeded or command (cdr) returns success
 function timeout() {
   SECONDS=0; TIMEOUT=$1; shift
-  while eval $*; do
+  until eval $*; do
     sleep 5
     [[ $SECONDS -gt $TIMEOUT ]] && echo "ERROR: Timed out" && exit -1
   done
@@ -27,7 +27,13 @@ function timeout() {
 
 # Waits for all pods in the given namespace to complete successfully.
 function wait_for_all_pods {
-  timeout 300 "$CMD get pods -n $1 2>&1 | grep -v -E '(Running|Completed|STATUS)'"
+  timeout 300 "$CMD get pods -n $1 && [[ \$($CMD get pods -n $1 2>&1 | grep -c -v -E '(Running|Completed|Terminating|STATUS)') -eq 0 ]]"
+}
+
+# Waits for a particular deployment to have all its pods available
+# usage: wait_for_deployment namespace name
+function wait_for_deployment {
+  timeout 300 "$CMD get deploy -n $1 && [[ \$($CMD get deploy -n $1 | grep -E '[1-9]\d*\s+\S+$' | grep -c $2) -eq 1 ]]"
 }
 
 function show_server {
@@ -167,8 +173,9 @@ function install_olm {
     mkdir -p "$REPO_DIR"
     rm -rf "$OLM_DIR"
     git clone https://github.com/operator-framework/operator-lifecycle-manager "$OLM_DIR"
+    pushd $OLM_DIR; git checkout f474ec872ca7b1dd; popd
 
-    sed -i "s|quay.io/coreos/olm@sha256:995a181839f301585a0e115c083619b6d73812c58a8444d7b13b8e407010325f|quay.io/openshift/origin-operator-lifecycle-manager|g" $OLM_DIR/deploy/upstream/manifests/latest/0000_50_olm_06-olm-operator.deployment.yaml $OLM_DIR/deploy/upstream/manifests/latest/0000_50_olm_07-catalog-operator.deployment.yaml $OLM_DIR/deploy/upstream/manifests/latest/0000_50_olm_10-olm-operators.configmap.yaml
+    # sed -i "s|quay.io/coreos/olm@sha256:995a181839f301585a0e115c083619b6d73812c58a8444d7b13b8e407010325f|quay.io/openshift/origin-operator-lifecycle-manager|g" $OLM_DIR/deploy/upstream/manifests/latest/0000_50_olm_06-olm-operator.deployment.yaml $OLM_DIR/deploy/upstream/manifests/latest/0000_50_olm_07-catalog-operator.deployment.yaml $OLM_DIR/deploy/upstream/manifests/latest/0000_50_olm_10-olm-operators.configmap.yaml
 
     for i in "$OLM_DIR"/deploy/upstream/manifests/latest/*.crd.yaml; do $CMD apply -f $i; done
     for i in $(find "$OLM_DIR/deploy/upstream/manifests/latest/" -type f ! -name "*crd.yaml" | sort); do $CMD create -f $i; done
@@ -185,6 +192,8 @@ function install_catalogsources {
   local OLM_NS=$(olm_namespace)
   $CMD apply -f "$ROOT_DIR/knative-operators.catalogsource.yaml" -n "$OLM_NS"
   $CMD apply -f "$ROOT_DIR/maistra-operators.catalogsource.yaml" -n "$OLM_NS"
+  timeout 120 "$CMD get pods -n $OLM_NS | grep knative"
+  timeout 120 "$CMD get pods -n $OLM_NS | grep maistra"
   wait_for_all_pods "$OLM_NS"
 }
 
@@ -236,7 +245,7 @@ function install_istio {
 	    password: admin
 	    prefix: kiali/
 	EOF
-    timeout 900 '$CMD get pods -n istio-system && [[ $($CMD get pods -n istio-system | grep openshift-ansible-istio-installer | grep -c Completed) -eq 0 ]]'
+    timeout 900 '$CMD get pods -n istio-system && [[ $($CMD get pods -n istio-system | grep openshift-ansible-istio-installer | grep -c Completed) -gt 0 ]]'
 
     # Scale down unused services deployed by the istio operator. The
     # jaeger pods will fail anyway due to the elasticsearch pod failing
@@ -298,7 +307,7 @@ function enable_interaction_with_registry() {
 
     $CMD -n $ns create configmap $configmap_name
     $CMD -n $ns annotate configmap $configmap_name service.alpha.openshift.io/inject-cabundle="true"
-    timeout 180 '! $CMD -n $ns get cm $configmap_name -oyaml | grep $cert_name'
+    timeout 180 '$CMD -n $ns get cm $configmap_name -oyaml | grep $cert_name'
     $CMD -n $ns set volume deployment/controller --add --name=service-ca --configmap-name=$configmap_name --mount-path=$mount_path
     $CMD -n $ns set env deployment/controller SSL_CERT_FILE=$mount_path/$cert_name
   else
