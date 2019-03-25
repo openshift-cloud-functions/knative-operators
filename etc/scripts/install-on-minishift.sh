@@ -15,6 +15,7 @@ OPENSHIFT_VERSION=${OPENSHIFT_VERSION:-v3.11.0}
 MEMORY=${MEMORY:-10GB}
 CPUS=${CPUS:-4}
 DISK_SIZE=${DISK_SIZE:-50g}
+VM_DRIVER=${VM_DRIVER:-$(minishift config get vm-driver 2>/dev/null || echo "virtualbox")}
 
 # blow away everything in the knative profile
 minishift profile delete knative --force
@@ -25,6 +26,7 @@ minishift config set openshift-version ${OPENSHIFT_VERSION}
 minishift config set memory ${MEMORY}
 minishift config set cpus ${CPUS}
 minishift config set disk-size ${DISK_SIZE}
+minishift config set vm-driver ${VM_DRIVER}
 minishift config set image-caching true
 minishift addons enable admin-user
 
