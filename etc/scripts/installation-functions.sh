@@ -173,9 +173,9 @@ function install_olm {
     mkdir -p "$REPO_DIR"
     rm -rf "$OLM_DIR"
     git clone https://github.com/operator-framework/operator-lifecycle-manager "$OLM_DIR"
-    # pushd $OLM_DIR; git checkout f474ec872ca7b1dd; popd
+    pushd $OLM_DIR; git checkout f474ec872ca7b1dd; popd
 
-    sed -i "s|quay.io/coreos/olm@sha256:995a181839f301585a0e115c083619b6d73812c58a8444d7b13b8e407010325f|quay.io/openshift/origin-operator-lifecycle-manager|g" $OLM_DIR/deploy/upstream/manifests/latest/0000_50_olm_06-olm-operator.deployment.yaml $OLM_DIR/deploy/upstream/manifests/latest/0000_50_olm_07-catalog-operator.deployment.yaml $OLM_DIR/deploy/upstream/manifests/latest/0000_50_olm_10-olm-operators.configmap.yaml
+    # sed -i "s|quay.io/coreos/olm@sha256:995a181839f301585a0e115c083619b6d73812c58a8444d7b13b8e407010325f|quay.io/openshift/origin-operator-lifecycle-manager|g" $OLM_DIR/deploy/upstream/manifests/latest/0000_50_olm_06-olm-operator.deployment.yaml $OLM_DIR/deploy/upstream/manifests/latest/0000_50_olm_07-catalog-operator.deployment.yaml $OLM_DIR/deploy/upstream/manifests/latest/0000_50_olm_10-olm-operators.configmap.yaml
 
     for i in "$OLM_DIR"/deploy/upstream/manifests/latest/*.crd.yaml; do $CMD apply -f $i; done
     for i in $(find "$OLM_DIR/deploy/upstream/manifests/latest/" -type f ! -name "*crd.yaml" | sort); do $CMD create -f $i; done
@@ -263,10 +263,22 @@ function install_istio {
 }
 
 function install_knative {
-  if [[ ! "$1" =~ ^(build|serving|eventing)$ ]]; then
-    echo "Pass one of 'build', 'serving', or 'eventing'"
-    return -1
-  fi
+  local version
+  case $1 in
+    build)
+      version=$KNATIVE_BUILD_VERSION
+      ;;
+    serving)
+      version=$KNATIVE_SERVING_VERSION
+      ;;
+    eventing)
+      version=$KNATIVE_EVENTING_VERSION
+      ;;
+    *)
+      echo "Pass one of 'build', 'serving', or 'eventing'"
+      return -1
+      ;;
+  esac
   local COMPONENT="knative-$1"
   if $CMD get ns ${COMPONENT} 2>/dev/null 1>&2; then
     echo "${COMPONENT} namespace exists - reapplying resources"
@@ -293,7 +305,7 @@ function install_knative {
 	  source: knative-operators
 	  sourceNamespace: $(olm_namespace)
 	  name: ${COMPONENT}
-	  startingCSV: ${COMPONENT}.${KNATIVE_BUILD_VERSION}
+	  startingCSV: ${COMPONENT}.${version}
 	  channel: alpha
 	EOF
 }
