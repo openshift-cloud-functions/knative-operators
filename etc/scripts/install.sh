@@ -32,9 +32,11 @@ install_knative build
 install_knative serving
 install_knative eventing
 
+wait_for_deployment knative-build build-controller
 wait_for_all_pods knative-build
-wait_for_deployment knative-serving controller # to account for operator pod
+wait_for_deployment knative-serving controller
 wait_for_all_pods knative-serving
+wait_for_deployment knative-eventing eventing-controller
 wait_for_all_pods knative-eventing
 
 enable_interaction_with_registry
