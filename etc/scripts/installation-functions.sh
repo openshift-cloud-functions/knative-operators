@@ -7,7 +7,7 @@
 # the catalog source.
 KNATIVE_SERVING_VERSION=v0.4.1
 KNATIVE_BUILD_VERSION=v0.4.0
-KNATIVE_EVENTING_VERSION=v0.3.0
+KNATIVE_EVENTING_VERSION=v0.4.1
 
 INSTALL_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 

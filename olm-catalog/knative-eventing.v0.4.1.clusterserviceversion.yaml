@@ -1,0 +1,298 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  name: knative-eventing.v0.4.1
+spec:
+  displayName: Knative Eventing
+  description: |
+    Kubernetes-native Eventing resource
+  version: 0.4.1
+  maturity: alpha
+  replaces: knative-eventing.v0.3.0
+
+  installModes:
+  - supported: true
+    type: OwnNamespace
+  - supported: true
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+
+  install:
+    strategy: deployment
+    spec:
+      clusterPermissions:
+
+      - serviceAccountName: eventing-controller
+        rules:
+        - apiGroups:
+          - '*'
+          resources:
+          - '*'
+          verbs:
+          - '*'
+        - nonResourceURLs:
+          - '*'
+          verbs:
+          - '*'
+
+      - serviceAccountName: in-memory-channel-controller
+        rules:
+        - apiGroups:
+          - eventing.knative.dev
+          resources:
+          - channels
+          - channels/status
+          - clusterchannelprovisioners
+          - clusterchannelprovisioners/status
+          verbs:
+          - get
+          - list
+          - watch
+          - update
+        - apiGroups:
+          - eventing.knative.dev
+          resources:
+          - '*/finalizers'
+          verbs:
+          - update
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          - services
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+        - apiGroups:
+          - ""
+          resourceNames:
+          - in-memory-channel-clusterbus
+          resources:
+          - services
+          verbs:
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - services
+          verbs:
+          - update
+        - apiGroups:
+          - ""
+          resourceNames:
+          - in-memory-channel-dispatcher-config-map
+          resources:
+          - configmaps
+          verbs:
+          - update
+        - apiGroups:
+          - networking.istio.io
+          resources:
+          - virtualservices
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+          - update
+
+      - serviceAccountName: in-memory-channel-dispatcher
+        rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+
+        # The above rules are from upstream. The remaining are
+        # required for OpenShift
+
+        - apiGroups:
+          - security.openshift.io
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - use
+          resourceNames:
+          - privileged
+
+      - serviceAccountName: controller-manager
+        rules:
+        - apiGroups:
+          - sources.eventing.knative.dev
+          resources:
+          - awssqssources
+          - containersources
+          - cronjobsources
+          - githubsources
+          - kuberneteseventsources
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - sources.eventing.knative.dev
+          resources:
+          - awssqssources/status
+          - containersources/status
+          - cronjobsources/status
+          - githubsources/status
+          - kuberneteseventsources/status
+          verbs:
+          - get
+          - update
+          - patch
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - eventing.knative.dev
+          resources:
+          - channels
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - serving.knative.dev
+          resources:
+          - services
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        
+      deployments:
+      - name: knative-eventing-operator
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              name: knative-eventing-operator
+          template:
+            metadata:
+              labels:
+                name: knative-eventing-operator
+            spec:
+              serviceAccountName: eventing-controller
+              containers:
+                - name: knative-eventing-operator
+                  image: quay.io/jcrossley3/knative-eventing-operator:0.4.1
+                  command:
+                  - knative-eventing-operator
+                  args:
+                    - --olm
+                    - --install
+                    - --override-namespace
+                  env:
+                    - name: WATCH_NAMESPACE
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: metadata.namespace
+                    - name: POD_NAME
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: metadata.name
+                    - name: OPERATOR_NAME
+                      value: "knative-eventing-operator"
+
+  customresourcedefinitions:
+    owned:
+      - name: channels.eventing.knative.dev
+        kind: Channel
+        description: Channel
+        displayName: Channel
+        version: v1alpha1
+      - name: clusterchannelprovisioners.eventing.knative.dev
+        kind: ClusterChannelProvisioner
+        description: ClusterChannelProvisioner
+        displayName: ClusterChannelProvisioner
+        version: v1alpha1
+      - name: subscriptions.eventing.knative.dev
+        kind: Subscription
+        description: Subscription
+        displayName: Subscription
+        version: v1alpha1
+      - name: containersources.sources.eventing.knative.dev
+        kind: ContainerSource
+        description: ContainerSource
+        displayName: ContainerSource
+        version: v1alpha1
+      - name: githubsources.sources.eventing.knative.dev
+        kind: GitHubSource
+        description: GitHubSource
+        displayName: GitHubSource
+        version: v1alpha1
+      - name: kuberneteseventsources.sources.eventing.knative.dev
+        kind: KubernetesEventSource
+        description: KubernetesEventSource
+        displayName: KubernetesEventSource
+        version: v1alpha1
+      - name: cronjobsources.sources.eventing.knative.dev
+        kind: CronJobSource
+        description: CronJobSource
+        displayName: CronJobSource
+        version: v1alpha1
+      - name: awssqssources.sources.eventing.knative.dev
+        kind: AwsSqsSource
+        description: AwsSqsSource
+        displayName: AwsSqsSource
+        version: v1alpha1
+      - description: Knative Eventing Installation
+        displayName: Install Operator
+        kind: Install
+        name: installs.eventing.knative.dev
+        version: v1alpha1
