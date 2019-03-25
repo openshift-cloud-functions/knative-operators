@@ -1,4 +1,4 @@
 packageName: knative-serving
 channels:
 - name: alpha
-  currentCSV: knative-serving.v0.3.0
+  currentCSV: knative-serving.v0.4.1

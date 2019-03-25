@@ -1,0 +1,332 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  name: knative-serving.v0.4.1
+spec:
+  displayName: Knative Serving
+  description: |
+    Knative Serving builds on Kubernetes and Istio to support deploying and serving of serverless applications and functions
+  version: 0.4.1
+  maturity: alpha
+  replaces: knative-serving.v0.3.0
+  
+  installModes:
+  - supported: true
+    type: OwnNamespace
+  - supported: true
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+
+  install:
+    strategy: deployment
+    spec:
+      clusterPermissions:
+      - serviceAccountName: controller
+        rules:
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          - namespaces
+          - secrets
+          - configmaps
+          - endpoints
+          - services
+          - events
+          - serviceaccounts
+          verbs:
+          - get
+          - list
+          - create
+          - update
+          - delete
+          - patch
+          - watch
+        - apiGroups:
+          - extensions
+          resources:
+          - ingresses
+          - deployments
+          verbs:
+          - get
+          - list
+          - create
+          - update
+          - delete
+          - patch
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          - deployments/scale
+          - statefulsets
+          verbs:
+          - get
+          - list
+          - create
+          - update
+          - delete
+          - patch
+          - watch
+        - apiGroups:
+          - admissionregistration.k8s.io
+          resources:
+          - mutatingwebhookconfigurations
+          verbs:
+          - get
+          - list
+          - create
+          - update
+          - delete
+          - patch
+          - watch
+        - apiGroups:
+          - apiextensions.k8s.io
+          resources:
+          - customresourcedefinitions
+          verbs:
+          - get
+          - list
+          - create
+          - update
+          - delete
+          - patch
+          - watch
+        - apiGroups:
+          - serving.knative.dev
+          resources:
+          - configurations
+          - routes
+          - revisions
+          - services
+          verbs:
+          - get
+          - list
+          - create
+          - update
+          - delete
+          - patch
+          - watch
+        - apiGroups:
+          - serving.knative.dev
+          resources:
+          - configurations/status
+          - routes/status
+          - revisions/status
+          - services/status
+          verbs:
+          - get
+          - list
+          - create
+          - update
+          - delete
+          - patch
+          - watch
+        - apiGroups:
+          - autoscaling.internal.knative.dev
+          resources:
+          - podautoscalers
+          - podautoscalers/status
+          verbs:
+          - get
+          - list
+          - create
+          - update
+          - delete
+          - patch
+          - watch
+        - apiGroups:
+          - autoscaling
+          resources:
+          - horizontalpodautoscalers
+          verbs:
+          - get
+          - list
+          - create
+          - update
+          - delete
+          - patch
+          - watch
+        - apiGroups:
+          - caching.internal.knative.dev
+          resources:
+          - images
+          verbs:
+          - get
+          - list
+          - create
+          - update
+          - delete
+          - patch
+          - watch
+        - apiGroups:
+          - networking.internal.knative.dev
+          resources:
+          - clusteringresses
+          - clusteringresses/status
+          verbs:
+          - get
+          - list
+          - create
+          - update
+          - delete
+          - deletecollection
+          - patch
+          - watch
+        - apiGroups:
+          - networking.istio.io
+          resources:
+          - virtualservices
+          - gateways
+          verbs:
+          - get
+          - list
+          - create
+          - update
+          - delete
+          - patch
+          - watch
+
+        # The above rules are from upstream. The remaining are
+        # required for OpenShift
+
+        - apiGroups:
+          - security.openshift.io
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - use
+          resourceNames:
+          - privileged
+          - anyuid
+        - apiGroups:
+          - extensions
+          resources:
+          - deployments/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - serving.knative.dev
+          - networking.internal.knative.dev
+          resources:
+          - '*/finalizers'
+          verbs:
+          - update
+        - apiGroups:
+          - serving.knative.dev
+          resources:
+          - '*'
+          verbs:
+          - '*'
+
+      deployments:
+      - name: knative-serving-operator
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              name: knative-serving-operator
+          template:
+            metadata:
+              labels:
+                name: knative-serving-operator
+            spec:
+              serviceAccountName: controller
+              containers:
+                - name: knative-serving-operator
+                  image: quay.io/jcrossley3/knative-serving-operator:0.4.1
+                  command:
+                  - knative-serving-operator
+                  args:
+                    - --olm
+                    - --install
+                  env:
+                    - name: WATCH_NAMESPACE
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: metadata.namespace
+                    - name: POD_NAME
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: metadata.name
+                    - name: OPERATOR_NAME
+                      value: "knative-serving-operator"
+
+  customresourcedefinitions:
+    owned:
+      - kind: Configuration
+        name: configurations.serving.knative.dev
+        description: "Maintains the desired state for your deployment. It provides a clean separation between code and configuration and follows the Twelve-Factor App methodology. Modifying a configuration creates a new revision."
+        displayName: Configuration
+        version: v1alpha1
+        statusDescriptors:
+          - description: The latest Revision for this Configuration
+            displayName: Latest Revision
+            path: latestCreatedRevisionName
+            x-descriptors:
+              - 'urn:alm:descriptor:text'
+          - description: The conditions of this Configuration
+            displayName: Conditions
+            path: conditions
+            x-descriptors:
+              - 'urn:alm:descriptor:io.kubernetes.conditions'
+      - kind: Revision
+        name: revisions.serving.knative.dev
+        description: "A point-in-time snapshot of the code and configuration for each modification made to the workload. Revisions are immutable objects and can be retained for as long as useful."
+        displayName: Revision
+        version: v1alpha1
+      - kind: Route
+        name: routes.serving.knative.dev
+        description: "Maps a network endpoint to a one or more revisions. You can manage the traffic in several ways, including fractional traffic and named routes."
+        displayName: Knative Route
+        version: v1alpha1
+      - kind: Service
+        name: services.serving.knative.dev
+        description: "Automatically manages the whole lifecycle of your workload. It controls the creation of other objects to ensure that your app has a route, a configuration, and a new revision for each update of the service. Service can be defined to always route traffic to the latest revision or to a pinned revision."
+        displayName: Knative Service
+        version: v1alpha1
+        statusDescriptors:
+          - description: The external domain name for this Service
+            displayName: External Domain
+            path: domain
+            x-descriptors:
+              - 'urn:alm:descriptor:text'
+          - description: The in-cluster domain name for this Service
+            displayName: Internal Domain
+            path: address.hostname
+            x-descriptors:
+              - 'urn:alm:descriptor:text'
+          - description: The latest Revision for this Service
+            displayName: Latest Revision
+            path: latestCreatedRevisionName
+            x-descriptors:
+              - 'urn:alm:descriptor:text'
+          - description: The conditions of this Service
+            displayName: Conditions
+            path: conditions
+            x-descriptors:
+              - 'urn:alm:descriptor:io.kubernetes.conditions'
+      - description: A cached build image?
+        displayName: Image
+        kind: Image
+        name: images.caching.internal.knative.dev
+        version: v1alpha1
+      - description: A cluster ingress?
+        displayName: Cluster Ingress
+        kind: ClusterIngress
+        name: clusteringresses.networking.internal.knative.dev
+        version: v1alpha1
+      - description: A pod autoscaler?
+        displayName: Pod Autoscaler
+        kind: PodAutoscaler
+        name: podautoscalers.autoscaling.internal.knative.dev
+        version: v1alpha1
+      - description: Knative Serving Installation
+        displayName: Install Operator
+        kind: Install
+        name: installs.serving.knative.dev
+        version: v1alpha1
