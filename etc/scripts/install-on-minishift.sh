@@ -1,4 +1,4 @@
-#!/usr/bin/env bash 
+#!/usr/bin/env bash
 
 # WARNING: this totally destroys and recreates your `knative` profile,
 # thereby guaranteeing (hopefully) a clean environment upon successful
@@ -15,6 +15,12 @@ OPENSHIFT_VERSION=${OPENSHIFT_VERSION:-v3.11.0}
 MEMORY=${MEMORY:-10GB}
 CPUS=${CPUS:-4}
 DISK_SIZE=${DISK_SIZE:-50g}
+VM_DRIVER=${VM_DRIVER:-}
+
+# Set hyperkit as default on macOs
+if [[ -z "${OSTYPE}" && $(uname) == "Darwin" ]] || [ "${OSTYPE#darwin}" != "${OSTYPE}" ]; then
+  VM_DRIVER=${VM_DRIVER:-hyperkit}
+fi
 
 # blow away everything in the knative profile
 minishift profile delete knative --force
@@ -26,6 +32,10 @@ minishift config set memory ${MEMORY}
 minishift config set cpus ${CPUS}
 minishift config set disk-size ${DISK_SIZE}
 minishift config set image-caching true
+if [ -n "${VM_DRIVER}" ]; then
+  minishift config set vm-driver ${VM_DRIVER}
+fi
+
 minishift addons enable admin-user
 
 # Start minishift
