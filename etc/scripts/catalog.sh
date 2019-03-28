@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-DIR=${1:-$(cd $(dirname "$0")/../../olm-catalog && pwd)}
-
-NAME="knative-operators"
-NAMEDISPLAY="Knative Operators"
+DIR=${DIR:-$(cd $(dirname "$0")/../../olm-catalog && pwd)}
+NAME=${NAME:-knative-operators}
+x=( $(echo $NAME | tr '-' ' ') )
+DISPLAYNAME=${DISPLAYNAME:=${x[*]^}}
 
 indent() {
   INDENT="      "
@@ -34,7 +34,7 @@ metadata:
   name: $NAME
 spec:
   configMap: $NAME
-  displayName: $NAMEDISPLAY
+  displayName: $DISPLAYNAME
   publisher: Red Hat
   sourceType: internal
 EOF
