@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-DIR=$(cd $(dirname "$0")/../../olm-catalog && pwd)
+DIR=${1:-$(cd $(dirname "$0")/../../olm-catalog && pwd)}
 
 NAME="knative-operators"
 NAMEDISPLAY="Knative Operators"
