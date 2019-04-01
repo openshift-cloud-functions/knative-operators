@@ -173,8 +173,12 @@ function install_olm {
     mkdir -p "$REPO_DIR"
     rm -rf "$OLM_DIR"
     git clone https://github.com/operator-framework/operator-lifecycle-manager "$OLM_DIR"
-    # pushd $OLM_DIR; git checkout f474ec872ca7b1dd; popd
 
+    # When they update their images in the manifests, we should pin to
+    # that sha and remove the sed's
+
+    # pushd $OLM_DIR; git checkout 9ba3512c; popd
+    sed -i "s/v1alpha2/v1/g" $OLM_DIR/deploy/upstream/manifests/latest/*operatorgroup*
     sed -i "s|quay.io/operator-framework/olm@sha256:4b7dec341fc754fdd2c8784ca7d81747ebbb2b87866b9e61ebbebc8c5614cfdc|quay.io/openshift/origin-operator-lifecycle-manager|g" $OLM_DIR/deploy/upstream/manifests/latest/0000_50_olm_06-olm-operator.deployment.yaml $OLM_DIR/deploy/upstream/manifests/latest/0000_50_olm_07-catalog-operator.deployment.yaml $OLM_DIR/deploy/upstream/manifests/latest/0000_50_olm_10-olm-operators.configmap.yaml
 
     for i in "$OLM_DIR"/deploy/upstream/manifests/latest/*.crd.yaml; do $CMD apply -f $i; done
@@ -209,7 +213,7 @@ function install_istio {
     $CMD create ns istio-operator
     if check_operatorgroups; then
       cat <<-EOF | $CMD apply -f -
-	apiVersion: operators.coreos.com/v1alpha2
+	apiVersion: operators.coreos.com/v1
 	kind: OperatorGroup
 	metadata:
 	  name: istio-operator
@@ -287,7 +291,7 @@ function install_knative {
   fi
   if check_operatorgroups; then
     cat <<-EOF | $CMD apply -f -
-	apiVersion: operators.coreos.com/v1alpha2
+	apiVersion: operators.coreos.com/v1
 	kind: OperatorGroup
 	metadata:
 	  name: ${COMPONENT}
