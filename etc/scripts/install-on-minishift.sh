@@ -9,7 +9,7 @@ if minishift status | head -1 | grep "Running" >/dev/null; then
   exit 1
 fi
 
-set -x
+set -ex
 
 OPENSHIFT_VERSION=${OPENSHIFT_VERSION:-v3.11.0}
 MEMORY=${MEMORY:-10GB}
@@ -17,7 +17,7 @@ CPUS=${CPUS:-4}
 DISK_SIZE=${DISK_SIZE:-50g}
 
 # blow away everything in the knative profile
-minishift profile delete knative --force
+minishift profile delete knative --force || true
 
 # configure knative profile
 minishift profile set knative
