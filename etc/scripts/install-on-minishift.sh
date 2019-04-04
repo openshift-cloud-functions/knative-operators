@@ -9,7 +9,7 @@ if minishift status | head -1 | grep "Running" >/dev/null; then
   exit 1
 fi
 
-set -x
+set -ex
 
 OPENSHIFT_VERSION=${OPENSHIFT_VERSION:-v3.11.0}
 MEMORY=${MEMORY:-10GB}

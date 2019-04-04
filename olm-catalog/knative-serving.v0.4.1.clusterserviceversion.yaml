@@ -178,6 +178,18 @@ spec:
           - patch
           - watch
         - apiGroups:
+          - build.knative.dev
+          resources:
+          - builds
+          verbs:
+          - get
+          - list
+          - create
+          - update
+          - delete
+          - patch
+          - watch
+        - apiGroups:
           - networking.istio.io
           resources:
           - virtualservices
