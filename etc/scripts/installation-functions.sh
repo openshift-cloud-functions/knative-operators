@@ -159,6 +159,8 @@ function install_olm {
   local ROOT_DIR="$INSTALL_SCRIPT_DIR/../.."
   if check_openshift_4; then
     echo "Detected OpenShift 4 - skipping OLM installation."
+    # workaround for SRVKS-74
+    oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:knative-serving:controller
   elif $CMD get ns "operator-lifecycle-manager" 2>/dev/null; then
     echo "Detected OpenShift 3 with an older OLM already installed."
     # we'll assume this is v3.11.0, which doesn't support
