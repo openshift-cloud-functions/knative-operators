@@ -1,4 +1,0 @@
-packageName: knative-build
-channels:
-- name: alpha
-  currentCSV: knative-build.v0.4.0

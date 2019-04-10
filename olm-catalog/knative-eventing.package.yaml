@@ -1,4 +1,0 @@
-packageName: knative-eventing
-channels:
-- name: alpha
-  currentCSV: knative-eventing.v0.4.1
