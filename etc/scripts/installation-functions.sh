@@ -273,15 +273,12 @@ function install_knative {
   case $1 in
     build)
       version=$KNATIVE_BUILD_VERSION
-      source=build
       ;;
     serving)
       version=$KNATIVE_SERVING_VERSION
-      source=serving
       ;;
     eventing)
       version=$KNATIVE_EVENTING_VERSION
-      source=operators
       ;;
     *)
       echo "Pass one of 'build', 'serving', or 'eventing'"
@@ -311,7 +308,7 @@ function install_knative {
 	  generateName: ${COMPONENT}-
 	  namespace: ${COMPONENT}
 	spec:
-	  source: knative-${source}
+	  source: ${COMPONENT}
 	  sourceNamespace: $(olm_namespace)
 	  name: ${COMPONENT}
 	  startingCSV: ${COMPONENT}.${version}
