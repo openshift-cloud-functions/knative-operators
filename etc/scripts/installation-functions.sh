@@ -194,7 +194,9 @@ function install_olm {
 function install_catalogsources {
   local ROOT_DIR="$INSTALL_SCRIPT_DIR/../.."
   local OLM_NS=$(olm_namespace)
-  $CMD apply -f "$ROOT_DIR/knative-operators.catalogsource.yaml" -n "$OLM_NS"
+  $CMD apply -n "$OLM_NS" -f https://raw.githubusercontent.com/openshift/knative-serving/master/openshift/olm/knative-serving.catalogsource.yaml
+  $CMD apply -n "$OLM_NS" -f https://raw.githubusercontent.com/openshift/knative-build/master/openshift/olm/knative-build.catalogsource.yaml
+  $CMD apply -n "$OLM_NS" -f https://raw.githubusercontent.com/openshift/knative-eventing/master/openshift/olm/knative-eventing.catalogsource.yaml
   $CMD apply -f "$ROOT_DIR/maistra-operators.catalogsource.yaml" -n "$OLM_NS"
   timeout 120 "$CMD get pods -n $OLM_NS | grep knative"
   timeout 120 "$CMD get pods -n $OLM_NS | grep maistra"
@@ -271,12 +273,15 @@ function install_knative {
   case $1 in
     build)
       version=$KNATIVE_BUILD_VERSION
+      source=build
       ;;
     serving)
       version=$KNATIVE_SERVING_VERSION
+      source=serving
       ;;
     eventing)
       version=$KNATIVE_EVENTING_VERSION
+      source=operators
       ;;
     *)
       echo "Pass one of 'build', 'serving', or 'eventing'"
@@ -306,7 +311,7 @@ function install_knative {
 	  generateName: ${COMPONENT}-
 	  namespace: ${COMPONENT}
 	spec:
-	  source: knative-operators
+	  source: knative-${source}
 	  sourceNamespace: $(olm_namespace)
 	  name: ${COMPONENT}
 	  startingCSV: ${COMPONENT}.${version}
