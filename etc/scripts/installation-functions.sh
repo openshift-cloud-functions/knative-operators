@@ -9,6 +9,9 @@ KNATIVE_SERVING_VERSION=v0.4.1
 KNATIVE_BUILD_VERSION=v0.4.0
 KNATIVE_EVENTING_VERSION=v0.4.1
 
+readonly ISTIO_IMAGE_REPO="docker.io/istio/"
+readonly ISTIO_PATCH_VERSION="1.0.7"
+
 INSTALL_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
 CMD=kubectl
@@ -345,4 +348,31 @@ function patch_istio_for_knative() {
     $CMD delete pod -n istio-system -l istio=sidecar-injector
     wait_for_all_pods istio-system
   fi
+
+  # Patch the sidecar injector configmap up to $ISTIO_PATCH_VERSION
+  oc get -n istio-system configmap/istio-sidecar-injector -o yaml | sed "s/:1.0.[[:digit:]]\+/:${ISTIO_PATCH_VERSION}/g" | oc replace -f -
+
+  # Ensure Istio $ISTIO_PATCH_VERSION is used everywhere
+  echo "Patching Istio images up to $ISTIO_PATCH_VERSION"
+  patch_istio_deployment istio-galley 0 galley || return 1
+  patch_istio_deployment istio-egressgateway 0 proxyv2 || return 1
+  patch_istio_deployment istio-ingressgateway 0 proxyv2 || return 1
+  patch_istio_deployment istio-policy 0 mixer || return 1
+  patch_istio_deployment istio-policy 1 proxyv2 || return 1
+  patch_istio_deployment istio-telemetry 0 mixer || return 1
+  patch_istio_deployment istio-telemetry 1 proxyv2 || return 1
+  patch_istio_deployment istio-pilot 0 pilot || return 1
+  patch_istio_deployment istio-pilot 1 proxyv2 || return 1
+  patch_istio_deployment istio-citadel 0 citadel || return 1
+  patch_istio_deployment istio-sidecar-injector 0 sidecar_injector || return 1
+
+  wait_for_deployment istio-system istio-galley
+  wait_for_all_pods istio-system || return 1
+}
+
+function patch_istio_deployment() {
+  local deployment="$1"
+  local containerIndex=$2
+  local imageName=$3
+  oc patch -n istio-system deployment/${deployment} --type json -p "[{\"op\": \"replace\", \"path\": \"/spec/template/spec/containers/${containerIndex}/image\", \"value\":\"${ISTIO_IMAGE_REPO}${imageName}:${ISTIO_PATCH_VERSION}\"}]"
 }
