@@ -159,7 +159,6 @@ function enable_admission_webhooks {
 }
 
 function install_olm {
-  local ROOT_DIR="$INSTALL_SCRIPT_DIR/../.."
   if check_openshift_4; then
     echo "Detected OpenShift 4 - skipping OLM installation."
   elif $CMD get ns "operator-lifecycle-manager" 2>/dev/null; then
@@ -171,17 +170,7 @@ function install_olm {
     oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:knative-serving:controller
     oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:knative-eventing:default
   elif [ "$(olm_namespace)" = "" ]; then
-    local REPO_DIR="$ROOT_DIR/.repos"
-    local OLM_DIR="$REPO_DIR/olm"
-    mkdir -p "$REPO_DIR"
-    rm -rf "$OLM_DIR"
-    git clone https://github.com/operator-framework/operator-lifecycle-manager "$OLM_DIR"
-
-    # pin to 0.9.0 (4.1?)
-    pushd $OLM_DIR; git checkout eef76a28; popd
-
-    for i in "$OLM_DIR"/deploy/upstream/manifests/latest/*.crd.yaml; do $CMD apply -f $i; done
-    for i in $(find "$OLM_DIR/deploy/upstream/manifests/latest/" -type f ! -name "*crd.yaml" | sort); do $CMD create -f $i; done
+    $CMD apply -f https://github.com/operator-framework/operator-lifecycle-manager/releases/download/0.9.0/olm.yaml
     wait_for_all_pods olm
     # perms required by the OLM console: $OLM_DIR/scripts/run_console_local.sh
     # oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:kube-system:default
