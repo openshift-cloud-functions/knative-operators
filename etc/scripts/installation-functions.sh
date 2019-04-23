@@ -5,9 +5,9 @@
 # These are the versions in the OLM Subscriptions, but they will be
 # updated to the currentCSV version in the corresponding package in
 # the catalog source.
-KNATIVE_SERVING_VERSION=v0.4.1
-KNATIVE_BUILD_VERSION=v0.4.0
-KNATIVE_EVENTING_VERSION=v0.4.1
+KNATIVE_SERVING_VERSION=v0.5.1
+KNATIVE_BUILD_VERSION=v0.5.0
+KNATIVE_EVENTING_VERSION=v0.5.0
 
 readonly ISTIO_IMAGE_REPO="docker.io/istio/"
 readonly ISTIO_PATCH_VERSION="1.0.7"
@@ -182,9 +182,9 @@ function install_olm {
 function install_catalogsources {
   local ROOT_DIR="$INSTALL_SCRIPT_DIR/../.."
   local OLM_NS=$(olm_namespace)
-  $CMD apply -n "$OLM_NS" -f https://raw.githubusercontent.com/openshift/knative-serving/master/openshift/olm/knative-serving.catalogsource.yaml
-  $CMD apply -n "$OLM_NS" -f https://raw.githubusercontent.com/openshift/knative-build/master/openshift/olm/knative-build.catalogsource.yaml
-  $CMD apply -n "$OLM_NS" -f https://raw.githubusercontent.com/openshift/knative-eventing/master/openshift/olm/knative-eventing.catalogsource.yaml
+  $CMD apply -n "$OLM_NS" -f https://raw.githubusercontent.com/openshift/knative-serving/release-${KNATIVE_SERVING_VERSION}/openshift/olm/knative-serving.catalogsource.yaml
+  $CMD apply -n "$OLM_NS" -f https://raw.githubusercontent.com/openshift/knative-build/release-${KNATIVE_BUILD_VERSION}/openshift/olm/knative-build.catalogsource.yaml
+  $CMD apply -n "$OLM_NS" -f https://raw.githubusercontent.com/openshift/knative-eventing/release-${KNATIVE_EVENTING_VERSION}/openshift/olm/knative-eventing.catalogsource.yaml
   $CMD apply -f "$ROOT_DIR/maistra-operators.catalogsource.yaml" -n "$OLM_NS"
   timeout 120 "$CMD get pods -n $OLM_NS | grep knative"
   timeout 120 "$CMD get pods -n $OLM_NS | grep maistra"
@@ -296,10 +296,10 @@ function install_knative {
 	  generateName: ${COMPONENT}-
 	  namespace: ${COMPONENT}
 	spec:
-	  source: ${COMPONENT}
+	  source: ${COMPONENT}-operator
 	  sourceNamespace: $(olm_namespace)
-	  name: ${COMPONENT}
-	  startingCSV: ${COMPONENT}.${version}
+	  name: ${COMPONENT}-operator
+	  startingCSV: ${COMPONENT}-operator.${version}
 	  channel: alpha
 	EOF
 }

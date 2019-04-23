@@ -16,7 +16,7 @@ fi
 set -x
 
 KUBERNETES_VERSION=${KUBERNETES_VERSION:-v1.12.0}
-MEMORY=${MEMORY:-8192}
+MEMORY=${MEMORY:-10240}
 CPUS=${CPUS:-4}
 DISK_SIZE=${DISK_SIZE:-50g}
 VM_DRIVER=${VM_DRIVER:-$(minikube config get vm-driver 2>/dev/null || echo "virtualbox")}
