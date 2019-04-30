@@ -30,7 +30,7 @@ function timeout() {
 
 # Waits for all pods in the given namespace to complete successfully.
 function wait_for_all_pods {
-  timeout 300 "$CMD get pods -n $1 && [[ \$($CMD get pods -n $1 2>&1 | grep -c -v -E '(Running|Completed|Terminating|STATUS)') -eq 0 ]]"
+  timeout 300 "$CMD get pods -n $1 && [[ \$($CMD get pods -n $1 2>&1 --no-headers | grep -c -v -E '(Running|Completed|Terminating)') -eq 0 ]]"
 }
 
 # Waits for a particular deployment to have all its pods available
