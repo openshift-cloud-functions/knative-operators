@@ -168,7 +168,7 @@ function install_olm {
     oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:istio-operator:istio-operator
     oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:knative-build:build-controller
     oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:knative-serving:controller
-    oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:knative-eventing:default
+    oc adm policy add-cluster-role-to-user cluster-admin system:serviceaccount:knative-eventing:knative-eventing-operator
   elif [ "$(olm_namespace)" = "" ]; then
     $CMD apply -f https://github.com/operator-framework/operator-lifecycle-manager/releases/download/0.9.0/olm.yaml
     wait_for_all_pods olm
