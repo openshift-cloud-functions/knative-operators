@@ -43,8 +43,8 @@ enable_interaction_with_registry
 
 # skip tag resolving for internal registry
 # OpenShift 3 and 4 place the registry in different locations, hence
-# the two hostnames here
-$CMD -n knative-serving get cm config-controller -oyaml | yq w - "data.registriesSkippingTagResolving" "ko.local,dev.local,docker-registry.default.svc:5000,image-registry.openshift-image-registry.svc:5000" | $CMD apply -f -
+# the additional two hostnames here
+$CMD patch configmap config-controller -n knative-serving --type merge -p '{"data":{"registriesSkippingTagResolving": "ko.local,dev.local,docker-registry.default.svc:5000,image-registry.openshift-image-registry.svc:5000"}}'
 
 if $CMD get ns openshift 2>/dev/null; then
   # Add Golang imagestreams to be able to build go based images
