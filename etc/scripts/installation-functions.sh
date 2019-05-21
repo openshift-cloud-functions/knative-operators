@@ -5,7 +5,7 @@
 # These are the versions in the OLM Subscriptions, but they will be
 # updated to the currentCSV version in the corresponding package in
 # the catalog source.
-KNATIVE_SERVING_VERSION=v0.5.2
+KNATIVE_SERVING_VERSION=v0.5.1
 KNATIVE_BUILD_VERSION=v0.5.0
 KNATIVE_EVENTING_VERSION=v0.5.0
 
