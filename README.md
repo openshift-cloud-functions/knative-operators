@@ -1,3 +1,8 @@
+# WARNING!
+
+This repo is becoming obsolete. For current knative operator work, see
+[this poorly-named repo](https://github.com/openshift-knative) instead.
+
 # Knative Operators
 
 To install everything on a fresh minishift:
